@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TECSA — Dashboard de Base</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #080c10;
+    --surface: #0e1318;
+    --surface2: #131920;
+    --border: #1c2530;
+    --border2: #243040;
+    --accent: #e8b84b;
+    --accent2: #4b8ee8;
+    --green: #4be88a;
+    --red: #e84b4b;
+    --orange: #e87b4b;
+    --text: #d0dce8;
+    --muted: #5070a0;
+    --radius: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 0% 0%, rgba(232,184,75,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 100%, rgba(75,142,232,0.03) 0%, transparent 50%);
+  }
+
+  /* ── HEADER ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .topbar-icon { font-size: 28px; }
+  .topbar-brand {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .topbar-sub { font-size: 12px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(75,232,138,0.08);
+    border: 1px solid rgba(75,232,138,0.2);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .clock {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── MAIN ── */
+  .main { padding: 28px 32px 48px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .stat-card.total::before { background: var(--accent); }
+  .stat-card.taller::before { background: var(--accent2); }
+  .stat-card.otro::before { background: var(--orange); }
+  .stat-card.mas-tiempo::before { background: var(--red); }
+
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .stat-value { font-family: 'Rajdhani', sans-serif; font-size: 40px; font-weight: 700; line-height: 1; }
+  .stat-card.total .stat-value { color: var(--accent); }
+  .stat-card.taller .stat-value { color: var(--accent2); }
+  .stat-card.otro .stat-value { color: var(--orange); }
+  .stat-card.mas-tiempo .stat-value { color: var(--red); }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    padding: 8px 20px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .count-badge {
+    background: rgba(232,184,75,0.12);
+    border: 1px solid rgba(232,184,75,0.25);
+    color: var(--accent);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+  }
+
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── CARDS GRID ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .unit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .unit-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+  .unit-card.dias-altos { border-color: rgba(232,75,75,0.3); }
+  .unit-card.dias-medios { border-color: rgba(232,123,75,0.25); }
+
+  .card-top {
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .unit-number {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .unit-folio {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .dias-badge {
+    text-align: right;
+  }
+
+  .dias-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .dias-num.verde { color: var(--green); }
+  .dias-num.amarillo { color: var(--accent); }
+  .dias-num.rojo { color: var(--red); }
+
+  .dias-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .card-body { padding: 14px 18px 16px; }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+
+  .info-row:last-child { margin-bottom: 0; }
+
+  .info-label {
+    min-width: 72px;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding-top: 1px;
+  }
+
+  .info-value { color: var(--text); flex: 1; line-height: 1.4; }
+
+  .motivo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .motivo-chip.taller { background: rgba(75,142,232,0.12); color: var(--accent2); border: 1px solid rgba(75,142,232,0.25); }
+  .motivo-chip.otro { background: rgba(232,123,75,0.12); color: var(--orange); border: 1px solid rgba(232,123,75,0.25); }
+
+  .card-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .entry-time { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+
+  .btn-baja {
+    background: rgba(232,75,75,0.08);
+    border: 1px solid rgba(232,75,75,0.25);
+    color: var(--red);
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .btn-baja:hover { background: rgba(232,75,75,0.15); border-color: var(--red); }
+
+  /* Taller card extra info */
+  .taller-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(75,142,232,0.08);
+    border: 1px solid rgba(75,142,232,0.2);
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--accent2);
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    grid-column: 1 / -1;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; }
+
+  /* ── LOADING ── */
+  .loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+    font-size: 15px;
+    grid-column: 1 / -1;
+  }
+
+  /* ── MODAL DE BAJA ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+    transform: scale(0.95);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.open .modal { transform: scale(1); }
+
+  .modal-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+
+  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+  .modal-unit { color: var(--accent); font-weight: 600; }
+
+  .modal-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .modal-field input {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'IBM Plex Mono', monospace;
+    outline: none;
+    letter-spacing: 2px;
+    transition: border-color 0.2s;
+  }
+
+  .modal-field input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,75,75,0.1); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+  .btn-cancelar {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-cancelar:hover { border-color: var(--text); color: var(--text); }
+
+  .btn-confirmar-baja {
+    flex: 2;
+    background: var(--red);
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-confirmar-baja:hover { background: #f05c5c; }
+  .btn-confirmar-baja:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .modal-error {
+    font-size: 12px;
+    color: var(--red);
+    margin-top: 8px;
+    min-height: 16px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .topbar { padding: 0 16px; }
+    .main { padding: 16px 16px 40px; }
+    .topbar-sub, .live-badge { display: none; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-icon"></div>
+    <div>
+      <div class="topbar-brand">TECSA</div>
+      <div class="topbar-sub">Control de Base</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div> EN VIVO</div>
+    <div class="clock" id="clockDisplay">--:--:--</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- STATS -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card total">
+      <div class="stat-label">Total en Base</div>
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-sub">unidades activas</div>
+    </div>
+    <div class="stat-card taller">
+      <div class="stat-label">En Taller</div>
+      <div class="stat-value" id="statTaller">—</div>
+      <div class="stat-sub">con reporte</div>
+    </div>
+    <div class="stat-card otro">
+      <div class="stat-label">Otro Motivo</div>
+      <div class="stat-value" id="statOtro">—</div>
+      <div class="stat-sub">sin reporte de taller</div>
+    </div>
+    <div class="stat-card mas-tiempo">
+      <div class="stat-label">Más Tiempo</div>
+      <div class="stat-value" id="statMaxDias">—</div>
+      <div class="stat-sub" id="statMaxUnidad">días (máx)</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="cambiarTab('todas')">Todas</button>
+    <button class="tab-btn" onclick="cambiarTab('entradas')">Operadores</button>
+    <button class="tab-btn" onclick="cambiarTab('taller')">Taller</button>
+  </div>
+
+  <!-- SECTION ENTRADAS -->
+  <div id="secEntradas">
+    <div class="section-header">
+      <div class="section-title">
+        Unidades en Base
+        <span class="count-badge" id="countEntradas">0</span>
+      </div>
+      <button class="btn-refresh" onclick="cargarDatos()">Actualizar</button>
+    </div>
+    <div class="cards-grid" id="gridEntradas">
+      <div class="loading">Cargando datos...</div>
+    </div>
+  </div>
+
+  <!-- SECTION TALLER -->
+  <div id="secTaller" style="margin-top: 32px;">
+    <div class="section-header">
+      <div class="section-title">
+        Reportes de Taller
+        <span class="count-badge" id="countTaller">0</span>
+      </div>
+    </div>
+    <div class="cards-grid" id="gridTaller">
+      <div class="loading">Cargando datos...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL BAJA -->
+<div class="modal-overlay" id="modalBaja">
+  <div class="modal">
+    <div class="modal-title">Dar de Baja</div>
+    <div class="modal-sub">
+      Unidad <span class="modal-unit" id="modalUnitName">—</span> saldrá de la base.<br>
+      Ingresa la contraseña para confirmar.
+    </div>
+    <div class="modal-field">
+      <label>Contraseña</label>
+      <input type="password" id="modalPassword" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter') confirmarBaja()">
+    </div>
+    <div class="modal-error" id="modalError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-confirmar-baja" id="btnConfirmar" onclick="confirmarBaja()">Confirmar Baja</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let tabActual = 'todas';
+let bajaTarget = null;
+let datosGlobal = { entradas: [], taller: [] };
+
+// ── Reloj ────────────────────────────────────────────────────
+function actualizarReloj() {
+  const now = new Date();
+  document.getElementById('clockDisplay').textContent =
+    now.toLocaleTimeString('es-MX', { hour12: false, timeZone: 'America/Monterrey' });
+}
+actualizarReloj();
+setInterval(actualizarReloj, 1000);
+
+// ── Cargar datos ─────────────────────────────────────────────
+async function cargarDatos() {
+  try {
+    const res = await fetch('/api/unidades');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    datosGlobal = data;
+    actualizarStats(data);
+    renderEntradas(data.entradas);
+    renderTaller(data.taller);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('gridEntradas').innerHTML =
+      `<div class="loading" style="color:var(--red)">Error al cargar datos: ${e.message}</div>`;
+  }
+}
+
+// ── Stats ────────────────────────────────────────────────────
+function actualizarStats(data) {
+  const total = data.entradas.length + data.taller.length;
+  const enTaller = data.taller.length;
+  const enOtro = data.entradas.filter(u => !u.motivo.startsWith('Taller')).length;
+
+  const todasDias = [...data.entradas, ...data.taller].map(u => u.dias);
+  const maxDias = todasDias.length ? Math.max(...todasDias) : 0;
+  const maxUnit = [...data.entradas, ...data.taller].find(u => u.dias === maxDias);
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statTaller').textContent = enTaller;
+  document.getElementById('statOtro').textContent = enOtro;
+  document.getElementById('statMaxDias').textContent = maxDias;
+  document.getElementById('statMaxUnidad').textContent = maxUnit ? `días — ${maxUnit.unidad}` : 'días (máx)';
+}
+
+// ── Color días ────────────────────────────────────────────────
+function colorDias(dias) {
+  if (dias === 0) return 'verde';
+  if (dias <= 2) return 'amarillo';
+  return 'rojo';
+}
+
+function claseCard(dias) {
+  if (dias >= 3) return 'dias-altos';
+  if (dias >= 1) return 'dias-medios';
+  return '';
+}
+
+// ── Render Entradas ───────────────────────────────────────────
+function renderEntradas(entradas) {
+  const grid = document.getElementById('gridEntradas');
+  document.getElementById('countEntradas').textContent = entradas.length;
+
+  if (!entradas.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">No hay unidades registradas en base</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = entradas.map(u => `
+    <div class="unit-card ${claseCard(u.dias)}">
+      <div class="card-top">
+        <div>
+          <div class="unit-number">${escHtml(u.unidad)}</div>
+          <div class="unit-folio">${escHtml(u.folio)}</div>
+        </div>
+        <div class="dias-badge">
+          <div class="dias-num ${colorDias(u.dias)}">${u.dias}</div>
+          <div class="dias-label">${u.dias === 1 ? 'día' : 'días'}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="info-label">Operador</span>
+          <span class="info-value">${escHtml(u.operador)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Motivo</span>
+          <span class="info-value">
+            <span class="motivo-chip ${u.motivo.startsWith('Taller') ? 'taller' : 'otro'}">
+              ${escHtml(u.motivo)}
+            </span>
+          </span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="entry-time">Entrada: ${escHtml(u.fecha)} ${escHtml(u.hora)}</div>
+        <button class="btn-baja" onclick="abrirModal('${escHtml(u.folio)}','${escHtml(u.unidad)}','Entradas',${u.rowIndex})">
+          Dar de Baja
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Render Taller ─────────────────────────────────────────────
+function renderTaller(taller) {
+  const grid = document.getElementById('gridTaller');
+  document.getElementById('countTaller').textContent = taller.length;
+
+  if (!taller.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">No hay reportes de taller activos</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = taller.map(u => `
+    <div class="unit-card ${claseCard(u.dias)}">
+      <div class="card-top">
+        <div>
+          <div class="unit-number">${escHtml(u.unidad)}</div>
+          <div class="unit-folio">${escHtml(u.folio)}</div>
+        </div>
+        <div class="dias-badge">
+          <div class="dias-num ${colorDias(u.dias)}">${u.dias}</div>
+          <div class="dias-label">${u.dias === 1 ? 'día' : 'días'}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="info-label">Operador</span>
+          <span class="info-value">${escHtml(u.operador)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Planta</span>
+          <span class="info-value">${escHtml(u.planta)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Servicio</span>
+          <span class="info-value"><span class="taller-tag">${escHtml(u.areaServicio)}</span></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Falla</span>
+          <span class="info-value">${escHtml(u.reporteFalla)}</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="entry-time">Entrada: ${escHtml(u.fecha)} ${escHtml(u.hora)}</div>
+        <button class="btn-baja" onclick="abrirModal('${escHtml(u.folio)}','${escHtml(u.unidad)}','Taller',${u.rowIndex})">
+          Dar de Baja
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+function cambiarTab(tab) {
+  tabActual = tab;
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['todas','entradas','taller'][i] === tab);
+  });
+
+  const secE = document.getElementById('secEntradas');
+  const secT = document.getElementById('secTaller');
+
+  if (tab === 'todas') { secE.style.display = ''; secT.style.display = ''; }
+  else if (tab === 'entradas') { secE.style.display = ''; secT.style.display = 'none'; }
+  else { secE.style.display = 'none'; secT.style.display = ''; }
+}
+
+// ── Modal Baja ─────────────────────────────────────────────────
+function abrirModal(folio, unidad, sheet, rowIndex) {
+  bajaTarget = { folio, unidad, sheet, rowIndex };
+  document.getElementById('modalUnitName').textContent = unidad + ' (' + folio + ')';
+  document.getElementById('modalPassword').value = '';
+  document.getElementById('modalError').textContent = '';
+  document.getElementById('btnConfirmar').disabled = false;
+  document.getElementById('btnConfirmar').textContent = 'Confirmar Baja';
+  document.getElementById('modalBaja').classList.add('open');
+  setTimeout(() => document.getElementById('modalPassword').focus(), 150);
+}
+
+function cerrarModal() {
+  document.getElementById('modalBaja').classList.remove('open');
+  bajaTarget = null;
+}
+
+document.getElementById('modalBaja').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+
+async function confirmarBaja() {
+  if (!bajaTarget) return;
+  const password = document.getElementById('modalPassword').value;
+  if (!password) {
+    document.getElementById('modalError').textContent = 'Ingresa la contraseña.';
+    return;
+  }
+
+  const btn = document.getElementById('btnConfirmar');
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+  document.getElementById('modalError').textContent = '';
+
+  try {
+    const res = await fetch('/api/baja', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...bajaTarget, password })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      cerrarModal();
+      await cargarDatos();
+    } else {
+      document.getElementById('modalError').textContent = data.error || 'Error desconocido.';
+      btn.disabled = false;
+      btn.textContent = 'Confirmar Baja';
+    }
+  } catch (e) {
+    document.getElementById('modalError').textContent = 'Error de conexión.';
+    btn.disabled = false;
+    btn.textContent = 'Confirmar Baja';
+  }
+}
+
+// ── Util ───────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Init ───────────────────────────────────────────────────────
+cargarDatos();
+setInterval(cargarDatos, 60000); // Auto-refresh cada minuto
+</script>
+</body>
+</html>
