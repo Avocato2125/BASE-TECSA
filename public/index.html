@@ -539,10 +539,10 @@
   <div id="secEntradas">
     <div class="section-header">
       <div class="section-title">
-        Unidades en Base
-        <span class="count-badge" id="countEntradas">0</span>
-      </div>
-      <button class="btn-refresh" onclick="cargarDatos()">Actualizar</button>
+          Unidades en Base
+          <span class="count-badge" id="countEntradas">0</span>
+        </div>
+        <button class="btn-refresh" onclick="cargarDatos()">Actualizar</button>
     </div>
     <div class="cards-grid" id="gridEntradas">
       <div class="loading">Cargando datos...</div>
@@ -566,7 +566,7 @@
 
 <!-- MODAL BAJA -->
 <div class="modal-overlay" id="modalBaja">
-  <div class="modal">
+    <div class="modal">
     <div class="modal-title">Dar de Baja</div>
     <div class="modal-sub">
       Unidad <span class="modal-unit" id="modalUnitName">—</span> saldrá de la base.<br>
@@ -618,13 +618,13 @@ async function cargarDatos() {
 
 // ── Stats ────────────────────────────────────────────────────
 function actualizarStats(data) {
-  const total = data.entradas.length + data.taller.length;
-  const enTaller = data.taller.length;
-  const enOtro = data.entradas.filter(u => !u.motivo.startsWith('Taller')).length;
+  const total = data.entradas.length;
+  const enTaller = data.entradas.filter(u => u.motivo === 'Taller').length;
+  const enOtro = data.entradas.filter(u => u.motivo !== 'Taller').length;
 
-  const todasDias = [...data.entradas, ...data.taller].map(u => u.dias);
+  const todasDias = data.entradas.map(u => u.dias);
   const maxDias = todasDias.length ? Math.max(...todasDias) : 0;
-  const maxUnit = [...data.entradas, ...data.taller].find(u => u.dias === maxDias);
+  const maxUnit = data.entradas.find(u => u.dias === maxDias);
 
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statTaller').textContent = enTaller;

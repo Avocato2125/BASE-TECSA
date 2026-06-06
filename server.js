@@ -10,8 +10,8 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Configuración Google Sheets ──────────────────────────────
-const SHEET_ID = process.env.GOOGLE_SHEET_ID || '00a08f7d-0779-4ff3-898f-8c56fd39becf';
-const PASS_BAJA = process.env.PASSWORD_BAJA || 'Tecsa2125';
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+const PASS_BAJA = process.env.PASSWORD_BAJA || 'tecsa2024';
 
 // Autenticación con Service Account
 function getAuth() {
@@ -30,15 +30,17 @@ async function getSheetsClient() {
 // ── Helpers ──────────────────────────────────────────────────
 function calcularDias(fechaStr) {
   if (!fechaStr) return 0;
-  const partes = fechaStr.split('/');
+  // Formato esperado: dd/MM/yyyy
+  const partes = fechaStr.trim().split('/');
   if (partes.length !== 3) return 0;
-  const fecha = new Date(
-    parseInt(partes[2]),
-    parseInt(partes[1]) - 1,
-    parseInt(partes[0])
-  );
+  const dia  = parseInt(partes[0], 10);
+  const mes  = parseInt(partes[1], 10) - 1; // 0-indexed
+  const anio = parseInt(partes[2], 10);
+  if (isNaN(dia) || isNaN(mes) || isNaN(anio)) return 0;
+  const fecha = new Date(anio, mes, dia);
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
+  fecha.setHours(0, 0, 0, 0);
   const diff = Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24));
   return Math.max(0, diff);
 }
