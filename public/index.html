@@ -618,49 +618,73 @@ function actualizarReloj() {
 actualizarReloj();
 setInterval(actualizarReloj, 1000);
 
-// ── Panel Más Tiempo ─────────────────────────────────────
-function toggleMasTiempo() {
-  const panel = document.getElementById('panelMasTiempo');
-  const card  = document.getElementById('cardMasTiempo');
-  if (panel.style.display === 'none') {
-    renderListaMasTiempo();
-    panel.style.display = 'block';
-    card.style.borderColor = 'rgba(232,75,75,0.6)';
-    card.style.background  = 'rgba(232,75,75,0.08)';
-  } else {
-    panel.style.display = 'none';
-    card.style.borderColor = '';
-    card.style.background  = '';
-  }
+// ── Panels de Stats ──────────────────────────────────────
+let panelActivo = null;
+
+const panelConfig = {
+  'total':      { titulo: 'Todas las unidades en base',   color: 'var(--accent)',  filtro: function(u) { return true; }, orden: false },
+  'taller':     { titulo: 'Unidades en Taller',           color: 'var(--accent2)', filtro: function(u) { return u.motivo === 'Taller'; }, orden: false },
+  'otro':       { titulo: 'Unidades con otro motivo',     color: 'var(--orange)',  filtro: function(u) { return u.motivo !== 'Taller'; }, orden: false },
+  'mas-tiempo': { titulo: 'Unidades por tiempo en base',  color: 'var(--red)',     filtro: function(u) { return true; }, orden: true }
+};
+
+function togglePanel(tipo) {
+  if (panelActivo === tipo) { cerrarPanel(); return; }
+  document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelector('.stat-btn.' + tipo).classList.add('active');
+  panelActivo = tipo;
+  renderPanel(tipo);
+  document.getElementById('statPanel').classList.add('open');
 }
 
-function renderListaMasTiempo() {
-  const todas = [...datosGlobal.entradas].sort((a, b) => b.dias - a.dias);
-  const lista = document.getElementById('listaMasTiempo');
+function cerrarPanel() {
+  document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('statPanel').classList.remove('open');
+  panelActivo = null;
+}
 
-  if (!todas.length) {
-    lista.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:12px;">No hay unidades activas</div>';
+function renderPanel(tipo) {
+  var cfg   = panelConfig[tipo];
+  var title = document.getElementById('statPanelTitle');
+  var body  = document.getElementById('statPanelBody');
+  title.textContent = cfg.titulo;
+  title.style.color = cfg.color;
+
+  var unidades = datosGlobal.entradas.filter(cfg.filtro);
+  if (cfg.orden) unidades = unidades.slice().sort(function(a,b) { return b.dias - a.dias; });
+
+  if (!unidades.length) {
+    body.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:20px;">No hay unidades activas</div>';
     return;
   }
 
-  lista.innerHTML = todas.map((u, i) => {
-    const col = u.dias >= 3 ? 'var(--red)' : u.dias >= 1 ? 'var(--accent)' : 'var(--green)';
-    return \`<div style="display:flex;align-items:center;gap:16px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
-      <div style="font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--muted);min-width:20px;text-align:center;">\${i+1}</div>
-      <div style="font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--accent);min-width:52px;">\${escHtml(u.unidad)}</div>
-      <div style="flex:1;">
-        <div style="font-size:13px;color:var(--text);">\${escHtml(u.operador)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Entrada: \${escHtml(u.fecha)} \${escHtml(u.hora)}</div>
-        <div style="margin-top:4px;">
-          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:\${u.motivo==='Taller'?'rgba(75,142,232,0.12)':'rgba(232,123,75,0.12)'};color:\${u.motivo==='Taller'?'var(--accent2)':'var(--orange)'};border:1px solid \${u.motivo==='Taller'?'rgba(75,142,232,0.25)':'rgba(232,123,75,0.25)'};">\${escHtml(u.motivo)}</span>
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:\${col};line-height:1;">\${u.dias}</div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">\${u.dias===1?'día':'días'}</div>
-      </div>
-    </div>\`;
-  }).join('');
+  var html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+  for (var i = 0; i < unidades.length; i++) {
+    var u = unidades[i];
+    var diasCol    = u.dias >= 1 ? 'var(--red)' : 'var(--green)';
+    var esTaller   = u.motivo === 'Taller';
+    var chipBg     = esTaller ? 'rgba(75,142,232,0.12)' : 'rgba(232,123,75,0.12)';
+    var chipColor  = esTaller ? 'var(--accent2)' : 'var(--orange)';
+    var chipBorder = esTaller ? 'rgba(75,142,232,0.3)' : 'rgba(232,123,75,0.3)';
+    var cardBorder = u.dias >= 1 ? '1px solid rgba(232,75,75,0.25)' : '1px solid var(--border)';
+    var numLabel   = cfg.orden ? '<div style="font-size:12px;color:var(--muted);min-width:18px;text-align:center;">' + (i+1) + '</div>' : '';
+    html += '<div style="display:flex;align-items:center;gap:16px;background:rgba(255,255,255,0.02);border:' + cardBorder + ';border-radius:8px;padding:14px 16px;">'
+      + numLabel
+      + '<div style="font-family:Rajdhani,sans-serif;font-size:24px;font-weight:700;color:var(--accent);min-width:52px;">' + escHtml(u.unidad)
+      +   '<div style="font-family:monospace;font-size:10px;color:var(--muted);font-weight:400;">' + escHtml(u.folio) + '</div></div>'
+      + '<div style="flex:1;">'
+      +   '<div style="font-size:13px;color:var(--text);">' + escHtml(u.operador) + '</div>'
+      +   '<div style="font-size:11px;color:var(--muted);margin-top:2px;">Entrada: ' + escHtml(u.fecha) + ' ' + escHtml(u.hora) + '</div>'
+      +   '<div style="margin-top:6px;"><span style="font-size:11px;padding:2px 9px;border-radius:10px;background:' + chipBg + ';color:' + chipColor + ';border:1px solid ' + chipBorder + ';">' + escHtml(u.motivo) + '</span></div>'
+      + '</div>'
+      + '<div style="text-align:right;min-width:48px;">'
+      +   '<div style="font-family:Rajdhani,sans-serif;font-size:30px;font-weight:700;line-height:1;color:' + diasCol + ';">' + u.dias + '</div>'
+      +   '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">' + (u.dias === 1 ? 'dia' : 'dias') + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+  html += '</div>';
+  body.innerHTML = html;
 }
 
 // ── Cargar datos ─────────────────────────────────────────────
