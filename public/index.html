@@ -739,7 +739,7 @@ function renderEntradas(entradas) {
   document.getElementById('countEntradas').textContent = entradas.length;
 
   if (!entradas.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No hay unidades registradas en base</div></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">No hay unidades registradas en base</div></div>`;
     return;
   }
 
@@ -764,7 +764,7 @@ function renderEntradas(entradas) {
           <span class="info-label">Motivo</span>
           <span class="info-value">
             <span class="motivo-chip ${u.motivo.startsWith('Taller') ? 'taller' : 'otro'}">
-              ${u.motivo.startsWith('Taller') ? '🔧' : '📋'} ${escHtml(u.motivo)}
+              ${escHtml(u.motivo)}
             </span>
           </span>
         </div>
@@ -785,7 +785,7 @@ function renderTaller(taller) {
   document.getElementById('countTaller').textContent = taller.length;
 
   if (!taller.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">No hay reportes de taller activos</div></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">No hay reportes de taller activos</div></div>`;
     return;
   }
 
@@ -812,7 +812,7 @@ function renderTaller(taller) {
         </div>
         <div class="info-row">
           <span class="info-label">Servicio</span>
-          <span class="info-value"><span class="taller-tag">⚙️ ${escHtml(u.areaServicio)}</span></span>
+          <span class="info-value"><span class="taller-tag">${escHtml(u.areaServicio)}</span></span>
         </div>
         <div class="info-row">
           <span class="info-label">Falla</span>
