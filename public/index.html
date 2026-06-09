@@ -3,507 +3,208 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TECSA — Dashboard de Base</title>
+<title>TECSA — Control de Base</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
 
   :root {
-    --bg: #080c10;
+    --bg:      #080c10;
     --surface: #0e1318;
-    --surface2: #131920;
-    --border: #1c2530;
+    --surface2:#131920;
+    --border:  #1c2530;
     --border2: #243040;
-    --accent: #e8b84b;
+    --accent:  #e8b84b;
     --accent2: #4b8ee8;
-    --green: #4be88a;
-    --red: #e84b4b;
-    --orange: #e87b4b;
-    --text: #d0dce8;
-    --muted: #5070a0;
-    --radius: 10px;
+    --green:   #4be88a;
+    --red:     #e84b4b;
+    --orange:  #e87b4b;
+    --text:    #d0dce8;
+    --muted:   #5070a0;
+    --radius:  10px;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; }
 
   body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     min-height: 100vh;
-    background-image:
-      radial-gradient(ellipse at 0% 0%, rgba(232,184,75,0.03) 0%, transparent 50%),
-      radial-gradient(ellipse at 100% 100%, rgba(75,142,232,0.03) 0%, transparent 50%);
   }
 
-  /* ── HEADER ── */
+  /* TOPBAR */
   .topbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding: 0 32px;
     height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
   }
-
-  .topbar-left { display: flex; align-items: center; gap: 16px; }
-  .topbar-icon { font-size: 28px; }
-  .topbar-brand {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 22px;
-    color: var(--accent);
-    letter-spacing: 1px;
-  }
-  .topbar-sub { font-size: 12px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
-
-  .topbar-right { display: flex; align-items: center; gap: 16px; }
-
+  .topbar-brand { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:22px; color:var(--accent); letter-spacing:1px; }
+  .topbar-sub   { font-size:12px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
+  .topbar-right { display:flex; align-items:center; gap:16px; }
   .live-badge {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: rgba(75,232,138,0.08);
-    border: 1px solid rgba(75,232,138,0.2);
-    border-radius: 20px;
-    padding: 5px 12px;
-    font-size: 12px;
-    color: var(--green);
-    font-weight: 500;
+    display:flex; align-items:center; gap:7px;
+    background:rgba(75,232,138,0.08); border:1px solid rgba(75,232,138,0.2);
+    border-radius:20px; padding:5px 12px;
+    font-size:12px; color:var(--green); font-weight:500;
   }
+  .live-dot { width:7px; height:7px; background:var(--green); border-radius:50%; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .clock { font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--muted); }
 
-  .live-dot {
-    width: 7px; height: 7px;
-    background: var(--green);
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
-  }
+  /* MAIN */
+  .main { padding:28px 32px 48px; max-width:1400px; margin:0 auto; }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .clock {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 14px;
-    color: var(--muted);
-  }
-
-  /* ── MAIN ── */
-  .main { padding: 28px 32px 48px; max-width: 1400px; margin: 0 auto; }
-
-  /* ── STATS ROW ── */
-  .stats-row {
-    display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
-  }
-
+  /* STAT BUTTONS */
+  .stats-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
   .stat-btn {
-    display: flex; align-items: center; gap: 12px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px 18px;
-    cursor: pointer; transition: all 0.18s;
-    position: relative; overflow: hidden;
-    flex: 1; min-width: 140px;
+    display:flex; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:12px 18px;
+    cursor:pointer; transition:all 0.18s;
+    position:relative; overflow:hidden; flex:1; min-width:140px;
   }
   .stat-btn::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0;
-    height: 2px; border-radius: var(--radius) var(--radius) 0 0; transition: height 0.18s;
+    content:''; position:absolute; top:0; left:0; right:0;
+    height:2px; border-radius:var(--radius) var(--radius) 0 0; transition:height 0.18s;
   }
-  .stat-btn:hover::before { height: 3px; }
-  .stat-btn:hover { transform: translateY(-1px); }
-  .stat-btn.total::before   { background: var(--accent); }
-  .stat-btn.taller::before  { background: var(--accent2); }
-  .stat-btn.otro::before    { background: var(--orange); }
-  .stat-btn.mas-tiempo::before { background: var(--red); }
-  .stat-btn.active { background: var(--surface2); }
-  .stat-btn.total.active    { border-color: rgba(232,184,75,0.4); }
-  .stat-btn.taller.active   { border-color: rgba(75,142,232,0.4); }
-  .stat-btn.otro.active     { border-color: rgba(232,123,75,0.4); }
-  .stat-btn.mas-tiempo.active { border-color: rgba(232,75,75,0.4); }
+  .stat-btn:hover::before { height:3px; }
+  .stat-btn:hover { transform:translateY(-1px); }
+  .stat-btn.total::before    { background:var(--accent); }
+  .stat-btn.taller::before   { background:var(--accent2); }
+  .stat-btn.otro::before     { background:var(--orange); }
+  .stat-btn.mastiempo::before{ background:var(--red); }
+  .stat-btn.active { background:var(--surface2); }
+  .stat-btn.total.active     { border-color:rgba(232,184,75,0.4); }
+  .stat-btn.taller.active    { border-color:rgba(75,142,232,0.4); }
+  .stat-btn.otro.active      { border-color:rgba(232,123,75,0.4); }
+  .stat-btn.mastiempo.active { border-color:rgba(232,75,75,0.4); }
+  .stat-num { font-family:'Rajdhani',sans-serif; font-size:36px; font-weight:700; line-height:1; }
+  .stat-btn.total .stat-num     { color:var(--accent); }
+  .stat-btn.taller .stat-num    { color:var(--accent2); }
+  .stat-btn.otro .stat-num      { color:var(--orange); }
+  .stat-btn.mastiempo .stat-num { color:var(--red); }
+  .stat-lbl { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; line-height:1.3; }
+  .stat-arrow { margin-left:auto; font-size:11px; color:var(--muted); transition:transform 0.2s; }
+  .stat-btn.active .stat-arrow { transform:rotate(180deg); color:var(--text); }
 
-  .stat-num { font-family: 'Rajdhani', sans-serif; font-size: 36px; font-weight: 700; line-height: 1; }
-  .stat-btn.total .stat-num    { color: var(--accent); }
-  .stat-btn.taller .stat-num   { color: var(--accent2); }
-  .stat-btn.otro .stat-num     { color: var(--orange); }
-  .stat-btn.mas-tiempo .stat-num { color: var(--red); }
+  /* STAT PANEL */
+  .stat-panel { display:none; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:20px; }
+  .stat-panel.open { display:block; animation:fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .stat-panel-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .stat-panel-title  { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:600; letter-spacing:0.5px; }
+  .stat-panel-close  { background:transparent; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:2px 6px; border-radius:4px; transition:color 0.15s; }
+  .stat-panel-close:hover { color:var(--text); }
+  .stat-panel-body { padding:16px 20px; }
 
-  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; line-height: 1.3; }
-  .stat-arrow { margin-left: auto; font-size: 11px; color: var(--muted); transition: transform 0.2s; }
-  .stat-btn.active .stat-arrow { transform: rotate(180deg); color: var(--text); }
+  /* SECTION */
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title  { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .count-badge    { background:rgba(232,184,75,0.12); border:1px solid rgba(232,184,75,0.25); color:var(--accent); border-radius:12px; padding:2px 10px; font-size:12px; font-family:'IBM Plex Mono',monospace; }
+  .btn-refresh    { background:transparent; border:1px solid var(--border); border-radius:8px; padding:7px 14px; color:var(--muted); font-size:13px; cursor:pointer; transition:all 0.18s; font-family:'Inter',sans-serif; }
+  .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
 
-  /* ── PANEL DESPLEGABLE ── */
-  .stat-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; animation: fadeIn 0.2s ease; }
-  .stat-panel.open { display: block; }
-  .stat-panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .stat-panel-title { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
-  .stat-panel-close { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color 0.15s; }
-  .stat-panel-close:hover { color: var(--text); }
-  .stat-panel-body { padding: 16px 20px; }
-
-  /* ── TABS ── */
-  .tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 4px;
-    width: fit-content;
+  /* CARDS */
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+  .unit-card  {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden; cursor:pointer;
+    transition:border-color 0.2s, transform 0.2s;
+    animation:fadeIn 0.3s ease;
   }
+  .unit-card:hover { border-color:var(--border2); transform:translateY(-2px); }
+  .unit-card.alerta { border-color:rgba(232,75,75,0.3); }
 
-  .tab-btn {
-    padding: 8px 20px;
-    border-radius: 7px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s;
-  }
+  .card-top { padding:14px 16px 12px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .unit-num  { font-family:'Rajdhani',sans-serif; font-size:26px; font-weight:700; color:var(--accent); line-height:1; }
+  .unit-folio{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:3px; }
+  .dias-badge { text-align:right; }
+  .dias-num { font-family:'Rajdhani',sans-serif; font-size:28px; font-weight:700; line-height:1; }
+  .dias-num.verde    { color:var(--green); }
+  .dias-num.amarillo { color:var(--accent); }
+  .dias-num.rojo     { color:var(--red); }
+  .dias-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
 
-  .tab-btn.active {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1px solid var(--border2);
-  }
+  .card-body { padding:12px 16px 14px; }
+  .info-row  { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; font-size:13px; }
+  .info-row:last-child { margin-bottom:0; }
+  .info-lbl  { min-width:68px; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:0.8px; padding-top:1px; }
+  .info-val  { color:var(--text); flex:1; line-height:1.4; }
+  .chip { display:inline-flex; align-items:center; padding:2px 9px; border-radius:12px; font-size:12px; font-weight:500; }
+  .chip.taller { background:rgba(75,142,232,0.12); color:var(--accent2); border:1px solid rgba(75,142,232,0.25); }
+  .chip.otro   { background:rgba(232,123,75,0.12);  color:var(--orange);  border:1px solid rgba(232,123,75,0.25); }
 
-  /* ── SECTION TITLE ── */
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
+  .card-footer { padding:10px 16px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .entry-time { font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
+  .btn-baja   { background:rgba(232,75,75,0.08); border:1px solid rgba(232,75,75,0.25); color:var(--red); border-radius:7px; padding:5px 12px; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.18s; font-family:'Inter',sans-serif; }
+  .btn-baja:hover { background:rgba(232,75,75,0.15); border-color:var(--red); }
 
-  .section-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .empty-state { text-align:center; padding:60px 20px; color:var(--muted); grid-column:1/-1; }
+  .loading     { text-align:center; padding:60px; color:var(--muted); font-size:15px; grid-column:1/-1; }
 
-  .count-badge {
-    background: rgba(232,184,75,0.12);
-    border: 1px solid rgba(232,184,75,0.25);
-    color: var(--accent);
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 500;
-  }
+  /* MODAL BAJA */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity 0.2s; }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal { background:var(--surface2); border:1px solid var(--border2); border-radius:16px; padding:28px; width:100%; max-width:380px; box-shadow:0 32px 80px rgba(0,0,0,0.7); transform:scale(0.95); transition:transform 0.2s; }
+  .modal-overlay.open .modal { transform:scale(1); }
+  .modal-title { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; color:var(--red); margin-bottom:6px; }
+  .modal-sub   { font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.5; }
+  .modal-field label { display:block; font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+  .modal-field input { width:100%; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:11px 14px; color:var(--text); font-size:15px; font-family:'IBM Plex Mono',monospace; outline:none; letter-spacing:2px; transition:border-color 0.2s; }
+  .modal-field input:focus { border-color:var(--red); box-shadow:0 0 0 3px rgba(232,75,75,0.1); }
+  .modal-actions { display:flex; gap:10px; margin-top:20px; }
+  .btn-cancelar  { flex:1; background:transparent; border:1px solid var(--border); border-radius:8px; padding:11px; color:var(--muted); font-family:'Inter',sans-serif; font-size:14px; cursor:pointer; transition:all 0.18s; }
+  .btn-cancelar:hover { border-color:var(--text); color:var(--text); }
+  .btn-confirmar { flex:2; background:var(--red); border:none; border-radius:8px; padding:11px; color:white; font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; letter-spacing:0.5px; cursor:pointer; transition:all 0.18s; }
+  .btn-confirmar:hover { background:#f05c5c; }
+  .btn-confirmar:disabled { opacity:0.5; cursor:not-allowed; }
+  .modal-error { font-size:12px; color:var(--red); margin-top:8px; min-height:16px; }
 
-  .btn-refresh {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 14px;
-    color: var(--muted);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: 'Inter', sans-serif;
-  }
-  .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+  /* MODAL DETALLE */
+  .detalle-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:998; padding:20px; backdrop-filter:blur(6px); opacity:0; pointer-events:none; transition:opacity 0.2s; }
+  .detalle-overlay.open { opacity:1; pointer-events:all; }
+  .detalle-modal { background:var(--surface2); border:1px solid var(--border2); border-radius:16px; padding:0; width:100%; max-width:480px; box-shadow:0 32px 80px rgba(0,0,0,0.7); transform:scale(0.95); transition:transform 0.2s; overflow:hidden; max-height:90vh; overflow-y:auto; }
+  .detalle-overlay.open .detalle-modal { transform:scale(1); }
 
-  /* ── CARDS GRID ── */
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-  }
+  .detalle-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; }
+  .detalle-unidad { font-family:'Rajdhani',sans-serif; font-size:32px; font-weight:700; color:var(--accent); line-height:1; }
+  .detalle-folio  { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-top:4px; }
+  .detalle-close  { background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; padding:4px; }
+  .detalle-close:hover { color:var(--text); }
 
-  .unit-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s;
-    animation: fadeIn 0.3s ease;
-  }
+  /* Cronometro */
+  .cronometro { margin:0 24px; background:rgba(232,75,75,0.06); border:1px solid rgba(232,75,75,0.2); border-radius:10px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .crono-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:4px; }
+  .crono-seg { font-family:'IBM Plex Mono',monospace; }
+  .crono-dias { font-family:'Rajdhani',sans-serif; font-size:36px; font-weight:700; color:var(--red); line-height:1; }
+  .crono-hms  { font-family:'IBM Plex Mono',monospace; font-size:20px; color:var(--red); line-height:1; margin-top:2px; }
+  .crono-desde { font-size:11px; color:var(--muted); }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .detalle-body { padding:16px 24px 24px; }
+  .detalle-row  { display:flex; align-items:flex-start; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .detalle-row:last-child { border-bottom:none; }
+  .detalle-key  { min-width:110px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; padding-top:1px; }
+  .detalle-val  { font-size:13px; color:var(--text); flex:1; line-height:1.4; }
+  .detalle-section { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; color:var(--accent2); letter-spacing:1.5px; text-transform:uppercase; padding:14px 0 6px; border-bottom:1px solid rgba(75,142,232,0.2); margin-bottom:4px; }
 
-  .unit-card:hover { border-color: var(--border2); transform: translateY(-2px); }
-
-  .unit-card.dias-altos { border-color: rgba(232,75,75,0.3); }
-  .unit-card.dias-medios { border-color: rgba(232,123,75,0.25); }
-
-  .card-top {
-    padding: 16px 18px 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .unit-number {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1;
-  }
-
-  .unit-folio {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  .dias-badge {
-    text-align: right;
-  }
-
-  .dias-num {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .dias-num.verde { color: var(--green); }
-  .dias-num.amarillo { color: var(--accent); }
-  .dias-num.rojo { color: var(--red); }
-
-  .dias-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
-  .card-body { padding: 14px 18px 16px; }
-
-  .info-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
-  }
-
-  .info-row:last-child { margin-bottom: 0; }
-
-  .info-label {
-    min-width: 72px;
-    color: var(--muted);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    padding-top: 1px;
-  }
-
-  .info-value { color: var(--text); flex: 1; line-height: 1.4; }
-
-  .motivo-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .motivo-chip.taller { background: rgba(75,142,232,0.12); color: var(--accent2); border: 1px solid rgba(75,142,232,0.25); }
-  .motivo-chip.otro { background: rgba(232,123,75,0.12); color: var(--orange); border: 1px solid rgba(232,123,75,0.25); }
-
-  .card-footer {
-    padding: 12px 18px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .entry-time { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
-
-  .btn-baja {
-    background: rgba(232,75,75,0.08);
-    border: 1px solid rgba(232,75,75,0.25);
-    color: var(--red);
-    border-radius: 7px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: 'Inter', sans-serif;
-  }
-
-  .btn-baja:hover { background: rgba(232,75,75,0.15); border-color: var(--red); }
-
-  /* Taller card extra info */
-  .taller-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(75,142,232,0.08);
-    border: 1px solid rgba(75,142,232,0.2);
-    border-radius: 5px;
-    padding: 2px 8px;
-    font-size: 11px;
-    color: var(--accent2);
-  }
-
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--muted);
-    grid-column: 1 / -1;
-  }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-text { font-size: 15px; }
-
-  /* ── LOADING ── */
-  .loading {
-    text-align: center;
-    padding: 60px;
-    color: var(--muted);
-    font-size: 15px;
-    grid-column: 1 / -1;
-  }
-
-  /* ── MODAL DE BAJA ── */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-    padding: 20px;
-    backdrop-filter: blur(4px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-
-  .modal {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 28px;
-    width: 100%;
-    max-width: 380px;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
-    transform: scale(0.95);
-    transition: transform 0.2s;
-  }
-
-  .modal-overlay.open .modal { transform: scale(1); }
-
-  .modal-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--red);
-    margin-bottom: 6px;
-  }
-
-  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
-  .modal-unit { color: var(--accent); font-weight: 600; }
-
-  .modal-field label {
-    display: block;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .modal-field input {
-    width: 100%;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 11px 14px;
-    color: var(--text);
-    font-size: 15px;
-    font-family: 'IBM Plex Mono', monospace;
-    outline: none;
-    letter-spacing: 2px;
-    transition: border-color 0.2s;
-  }
-
-  .modal-field input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,75,75,0.1); }
-
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-
-  .btn-cancelar {
-    flex: 1;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 11px;
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.18s;
-  }
-  .btn-cancelar:hover { border-color: var(--text); color: var(--text); }
-
-  .btn-confirmar-baja {
-    flex: 2;
-    background: var(--red);
-    border: none;
-    border-radius: 8px;
-    padding: 11px;
-    color: white;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.18s;
-  }
-  .btn-confirmar-baja:hover { background: #f05c5c; }
-  .btn-confirmar-baja:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .modal-error {
-    font-size: 12px;
-    color: var(--red);
-    margin-top: 8px;
-    min-height: 16px;
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 600px) {
-    .topbar { padding: 0 16px; }
-    .main { padding: 16px 16px 40px; }
-    .topbar-sub, .live-badge { display: none; }
-    .cards-grid { grid-template-columns: 1fr; }
+  @media(max-width:600px) {
+    .topbar { padding:0 16px; }
+    .main   { padding:16px 16px 40px; }
+    .topbar-sub { display:none; }
+    .cards-grid { grid-template-columns:1fr; }
+    .stats-row .stat-btn { min-width:120px; }
   }
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-left">
-    <div class="topbar-icon"></div>
-    <div>
-      <div class="topbar-brand">TECSA</div>
-      <div class="topbar-sub">Control de Base</div>
-    </div>
+  <div>
+    <div class="topbar-brand">TECSA</div>
+    <div class="topbar-sub">Control de Base</div>
   </div>
   <div class="topbar-right">
     <div class="live-badge"><div class="live-dot"></div> EN VIVO</div>
@@ -511,34 +212,33 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main">
 
-  <!-- STATS BOTONES -->
+  <!-- STATS -->
   <div class="stats-row">
-    <button class="stat-btn total" onclick="togglePanel('total')">
+    <button class="stat-btn total"     onclick="togglePanel('total')">
       <div class="stat-num" id="statTotal">—</div>
-      <div class="stat-label">Total en Base</div>
+      <div class="stat-lbl">Total en Base</div>
       <div class="stat-arrow" id="arrowTotal">&#9660;</div>
     </button>
-    <button class="stat-btn taller" onclick="togglePanel('taller')">
+    <button class="stat-btn taller"    onclick="togglePanel('taller')">
       <div class="stat-num" id="statTaller">—</div>
-      <div class="stat-label">En Taller</div>
+      <div class="stat-lbl">En Taller</div>
       <div class="stat-arrow" id="arrowTaller">&#9660;</div>
     </button>
-    <button class="stat-btn otro" onclick="togglePanel('otro')">
+    <button class="stat-btn otro"      onclick="togglePanel('otro')">
       <div class="stat-num" id="statOtro">—</div>
-      <div class="stat-label">Otro Motivo</div>
+      <div class="stat-lbl">Otro Motivo</div>
       <div class="stat-arrow" id="arrowOtro">&#9660;</div>
     </button>
-    <button class="stat-btn mas-tiempo" onclick="togglePanel('mas-tiempo')">
+    <button class="stat-btn mastiempo" onclick="togglePanel('mastiempo')">
       <div class="stat-num" id="statMaxDias">—</div>
-      <div class="stat-label">Mas Tiempo</div>
-      <div class="stat-arrow" id="arrowMasTiempo">&#9660;</div>
+      <div class="stat-lbl">Mas Tiempo</div>
+      <div class="stat-arrow" id="arrowMastiempo">&#9660;</div>
     </button>
   </div>
 
-  <!-- PANEL DESPLEGABLE (uno solo, se reutiliza) -->
+  <!-- PANEL STATS -->
   <div class="stat-panel" id="statPanel">
     <div class="stat-panel-header">
       <div class="stat-panel-title" id="statPanelTitle"></div>
@@ -548,37 +248,32 @@
   </div>
 
   <!-- TABS -->
-  <div class="tabs">
-    <button class="tab-btn active" onclick="cambiarTab('todas')">Todas</button>
-    <button class="tab-btn" onclick="cambiarTab('entradas')">Operadores</button>
-    <button class="tab-btn" onclick="cambiarTab('taller')">Taller</button>
+  <div style="display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;width:fit-content;">
+    <button class="tab-btn active" id="tab-todas"      onclick="cambiarTab('todas')">Todas</button>
+    <button class="tab-btn"        id="tab-entradas"   onclick="cambiarTab('entradas')">Operadores</button>
+    <button class="tab-btn"        id="tab-taller"     onclick="cambiarTab('taller')">Taller</button>
   </div>
 
-  <!-- SECTION ENTRADAS -->
+  <style>
+    .tab-btn { padding:8px 20px; border-radius:7px; border:none; background:transparent; color:var(--muted); font-family:'Inter',sans-serif; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.18s; }
+    .tab-btn.active { background:var(--surface2); color:var(--text); border:1px solid var(--border2); }
+  </style>
+
+  <!-- ENTRADAS -->
   <div id="secEntradas">
     <div class="section-header">
-      <div class="section-title">
-        Unidades en Base
-        <span class="count-badge" id="countEntradas">0</span>
-      </div>
-      <button class="btn-refresh" onclick="cargarDatos()">↻ Actualizar</button>
+      <div class="section-title">Unidades en Base <span class="count-badge" id="countEntradas">0</span></div>
+      <button class="btn-refresh" onclick="cargarDatos()">Actualizar</button>
     </div>
-    <div class="cards-grid" id="gridEntradas">
-      <div class="loading">Cargando datos...</div>
-    </div>
+    <div class="cards-grid" id="gridEntradas"><div class="loading">Cargando...</div></div>
   </div>
 
-  <!-- SECTION TALLER -->
-  <div id="secTaller" style="margin-top: 32px;">
+  <!-- TALLER -->
+  <div id="secTaller" style="margin-top:32px;">
     <div class="section-header">
-      <div class="section-title">
-        Reportes de Taller
-        <span class="count-badge" id="countTaller">0</span>
-      </div>
+      <div class="section-title">Reportes de Taller <span class="count-badge" id="countTaller">0</span></div>
     </div>
-    <div class="cards-grid" id="gridTaller">
-      <div class="loading">Cargando datos...</div>
-    </div>
+    <div class="cards-grid" id="gridTaller"><div class="loading">Cargando...</div></div>
   </div>
 
 </div>
@@ -587,50 +282,79 @@
 <div class="modal-overlay" id="modalBaja">
   <div class="modal">
     <div class="modal-title">Dar de Baja</div>
-    <div class="modal-sub">
-      Unidad <span class="modal-unit" id="modalUnitName">—</span> saldrá de la base.<br>
-      Ingresa la contraseña para confirmar.
-    </div>
+    <div class="modal-sub">Unidad <strong id="modalUnitName" style="color:var(--accent);">—</strong> saldrá de la base.</div>
     <div class="modal-field">
-      <label>Contraseña</label>
-      <input type="password" id="modalPassword" placeholder="••••••••"
-        onkeydown="if(event.key==='Enter') confirmarBaja()">
+      <label>Contrasena</label>
+      <input type="password" id="modalPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter') confirmarBaja()">
     </div>
     <div class="modal-error" id="modalError"></div>
     <div class="modal-actions">
-      <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-confirmar-baja" id="btnConfirmar" onclick="confirmarBaja()">Confirmar Baja</button>
+      <button class="btn-cancelar" onclick="cerrarModalBaja()">Cancelar</button>
+      <button class="btn-confirmar" id="btnConfirmar" onclick="confirmarBaja()">Confirmar Baja</button>
     </div>
   </div>
 </div>
 
-<script>
-let tabActual = 'todas';
-let bajaTarget = null;
-let datosGlobal = { entradas: [], taller: [] };
+<!-- MODAL DETALLE -->
+<div class="detalle-overlay" id="detalleOverlay" onclick="cerrarDetalle(event)">
+  <div class="detalle-modal" id="detalleModal"></div>
+</div>
 
-// ── Reloj ────────────────────────────────────────────────────
+<script>
+var datosGlobal  = { entradas: [] };
+var bajaTarget   = null;
+var panelActivo  = null;
+var cronoInterval= null;
+
+// ── Reloj ─────────────────────────────────────────────────
 function actualizarReloj() {
-  const now = new Date();
   document.getElementById('clockDisplay').textContent =
-    now.toLocaleTimeString('es-MX', { hour12: false, timeZone: 'America/Monterrey' });
+    new Date().toLocaleTimeString('es-MX', { hour12:false, timeZone:'America/Monterrey' });
 }
 actualizarReloj();
 setInterval(actualizarReloj, 1000);
 
-// ── Panels de Stats ──────────────────────────────────────
-let panelActivo = null;
+// ── Cargar datos ───────────────────────────────────────────
+async function cargarDatos() {
+  try {
+    var res  = await fetch('/api/unidades');
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    datosGlobal = data;
+    actualizarStats(data);
+    renderEntradas(data.entradas);
+    renderTaller(data.entradas.filter(function(u){ return u.motivo === 'Taller'; }));
+    if (panelActivo) renderPanel(panelActivo);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('gridEntradas').innerHTML =
+      '<div class="loading" style="color:var(--red)">Error: ' + e.message + '</div>';
+  }
+}
 
-const panelConfig = {
-  'total':      { titulo: 'Todas las unidades en base',   color: 'var(--accent)',  filtro: function(u) { return true; }, orden: false },
-  'taller':     { titulo: 'Unidades en Taller',           color: 'var(--accent2)', filtro: function(u) { return u.motivo === 'Taller'; }, orden: false },
-  'otro':       { titulo: 'Unidades con otro motivo',     color: 'var(--orange)',  filtro: function(u) { return u.motivo !== 'Taller'; }, orden: false },
-  'mas-tiempo': { titulo: 'Unidades por tiempo en base',  color: 'var(--red)',     filtro: function(u) { return true; }, orden: true }
+// ── Stats ──────────────────────────────────────────────────
+function actualizarStats(data) {
+  var total    = data.entradas.length;
+  var enTaller = data.entradas.filter(function(u){ return u.motivo === 'Taller'; }).length;
+  var enOtro   = data.entradas.filter(function(u){ return u.motivo !== 'Taller'; }).length;
+  var maxDias  = total ? Math.max.apply(null, data.entradas.map(function(u){ return u.dias; })) : 0;
+  document.getElementById('statTotal').textContent   = total;
+  document.getElementById('statTaller').textContent  = enTaller;
+  document.getElementById('statOtro').textContent    = enOtro;
+  document.getElementById('statMaxDias').textContent = maxDias;
+}
+
+// ── Panels de Stats ────────────────────────────────────────
+var panelConfig = {
+  'total':     { titulo:'Todas las unidades en base',  color:'var(--accent)',  filtro:function(u){ return true; },                  orden:false },
+  'taller':    { titulo:'Unidades en Taller',          color:'var(--accent2)', filtro:function(u){ return u.motivo==='Taller'; },    orden:false },
+  'otro':      { titulo:'Unidades con otro motivo',    color:'var(--orange)',  filtro:function(u){ return u.motivo!=='Taller'; },    orden:false },
+  'mastiempo': { titulo:'Unidades por tiempo en base', color:'var(--red)',     filtro:function(u){ return true; },                  orden:true  }
 };
 
 function togglePanel(tipo) {
   if (panelActivo === tipo) { cerrarPanel(); return; }
-  document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.stat-btn').forEach(function(b){ b.classList.remove('active'); });
   document.querySelector('.stat-btn.' + tipo).classList.add('active');
   panelActivo = tipo;
   renderPanel(tipo);
@@ -638,7 +362,7 @@ function togglePanel(tipo) {
 }
 
 function cerrarPanel() {
-  document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.stat-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('statPanel').classList.remove('open');
   panelActivo = null;
 }
@@ -651,264 +375,220 @@ function renderPanel(tipo) {
   title.style.color = cfg.color;
 
   var unidades = datosGlobal.entradas.filter(cfg.filtro);
-  if (cfg.orden) unidades = unidades.slice().sort(function(a,b) { return b.dias - a.dias; });
+  if (cfg.orden) unidades = unidades.slice().sort(function(a,b){ return b.dias - a.dias; });
 
   if (!unidades.length) {
-    body.innerHTML = '<div style="color:var(--muted);font-size:14px;text-align:center;padding:20px;">No hay unidades activas</div>';
+    body.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;font-size:14px;">Sin unidades activas</div>';
     return;
   }
 
-  var html = '<div style="display:flex;flex-direction:column;gap:10px;">';
-  for (var i = 0; i < unidades.length; i++) {
-    var u = unidades[i];
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  unidades.forEach(function(u, i) {
     var diasCol    = u.dias >= 1 ? 'var(--red)' : 'var(--green)';
     var esTaller   = u.motivo === 'Taller';
     var chipBg     = esTaller ? 'rgba(75,142,232,0.12)' : 'rgba(232,123,75,0.12)';
     var chipColor  = esTaller ? 'var(--accent2)' : 'var(--orange)';
     var chipBorder = esTaller ? 'rgba(75,142,232,0.3)' : 'rgba(232,123,75,0.3)';
     var cardBorder = u.dias >= 1 ? '1px solid rgba(232,75,75,0.25)' : '1px solid var(--border)';
-    var numLabel   = cfg.orden ? '<div style="font-size:12px;color:var(--muted);min-width:18px;text-align:center;">' + (i+1) + '</div>' : '';
-    html += '<div style="display:flex;align-items:center;gap:16px;background:rgba(255,255,255,0.02);border:' + cardBorder + ';border-radius:8px;padding:14px 16px;">'
-      + numLabel
-      + '<div style="font-family:Rajdhani,sans-serif;font-size:24px;font-weight:700;color:var(--accent);min-width:52px;">' + escHtml(u.unidad)
+    var num = cfg.orden ? '<div style="font-size:12px;color:var(--muted);min-width:18px;text-align:center;">' + (i+1) + '</div>' : '';
+    html += '<div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,0.02);border:' + cardBorder + ';border-radius:8px;padding:12px 14px;cursor:pointer;" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
+      + num
+      + '<div style="font-family:Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);min-width:50px;">' + escHtml(u.unidad)
       +   '<div style="font-family:monospace;font-size:10px;color:var(--muted);font-weight:400;">' + escHtml(u.folio) + '</div></div>'
       + '<div style="flex:1;">'
       +   '<div style="font-size:13px;color:var(--text);">' + escHtml(u.operador) + '</div>'
       +   '<div style="font-size:11px;color:var(--muted);margin-top:2px;">Entrada: ' + escHtml(u.fecha) + ' ' + escHtml(u.hora) + '</div>'
-      +   '<div style="margin-top:6px;"><span style="font-size:11px;padding:2px 9px;border-radius:10px;background:' + chipBg + ';color:' + chipColor + ';border:1px solid ' + chipBorder + ';">' + escHtml(u.motivo) + '</span></div>'
+      +   '<div style="margin-top:5px;"><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + chipBg + ';color:' + chipColor + ';border:1px solid ' + chipBorder + ';">' + escHtml(u.motivo) + '</span></div>'
       + '</div>'
-      + '<div style="text-align:right;min-width:48px;">'
-      +   '<div style="font-family:Rajdhani,sans-serif;font-size:30px;font-weight:700;line-height:1;color:' + diasCol + ';">' + u.dias + '</div>'
-      +   '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">' + (u.dias === 1 ? 'dia' : 'dias') + '</div>'
+      + '<div style="text-align:right;min-width:44px;">'
+      +   '<div style="font-family:Rajdhani,sans-serif;font-size:28px;font-weight:700;line-height:1;color:' + diasCol + ';">' + u.dias + '</div>'
+      +   '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;">' + (u.dias===1?'dia':'dias') + '</div>'
       + '</div>'
       + '</div>';
-  }
+  });
   html += '</div>';
   body.innerHTML = html;
 }
 
-// ── Cargar datos ─────────────────────────────────────────────
-async function cargarDatos() {
-  try {
-    const res = await fetch('/api/unidades');
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
-    datosGlobal = data;
-    actualizarStats(data);
-    renderEntradas(data.entradas);
-    renderTaller(data.taller);
-  } catch (e) {
-    console.error(e);
-    document.getElementById('gridEntradas').innerHTML =
-      `<div class="loading" style="color:var(--red)">Error al cargar datos: ${e.message}</div>`;
-  }
-}
+// ── Color días ─────────────────────────────────────────────
+function colorDias(d) { return d >= 1 ? 'rojo' : 'verde'; }
 
-// ── Stats ────────────────────────────────────────────────────
-function actualizarStats(data) {
-  const total    = data.entradas.length;
-  const enTaller = data.entradas.filter(u => u.motivo === 'Taller').length;
-  const enOtro   = data.entradas.filter(u => u.motivo !== 'Taller').length;
-  const maxDias  = data.entradas.length ? Math.max(...data.entradas.map(u => u.dias)) : 0;
-
-  document.getElementById('statTotal').textContent   = total;
-  document.getElementById('statTaller').textContent  = enTaller;
-  document.getElementById('statOtro').textContent    = enOtro;
-  document.getElementById('statMaxDias').textContent = maxDias;
-
-  // Re-renderizar panel activo si hay uno abierto
-  if (panelActivo) renderPanel(panelActivo);
-}
-
-// ── Color días ────────────────────────────────────────────────
-function colorDias(dias) {
-  if (dias === 0) return 'verde';
-  if (dias <= 2) return 'amarillo';
-  return 'rojo';
-}
-
-function claseCard(dias) {
-  if (dias >= 3) return 'dias-altos';
-  if (dias >= 1) return 'dias-medios';
-  return '';
-}
-
-// ── Render Entradas ───────────────────────────────────────────
+// ── Render Entradas ────────────────────────────────────────
 function renderEntradas(entradas) {
-  const grid = document.getElementById('gridEntradas');
+  var grid = document.getElementById('gridEntradas');
   document.getElementById('countEntradas').textContent = entradas.length;
-
-  if (!entradas.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">No hay unidades registradas en base</div></div>`;
-    return;
-  }
-
-  grid.innerHTML = entradas.map(u => `
-    <div class="unit-card ${claseCard(u.dias)}">
-      <div class="card-top">
-        <div>
-          <div class="unit-number">${escHtml(u.unidad)}</div>
-          <div class="unit-folio">${escHtml(u.folio)}</div>
-        </div>
-        <div class="dias-badge">
-          <div class="dias-num ${colorDias(u.dias)}">${u.dias}</div>
-          <div class="dias-label">${u.dias === 1 ? 'día' : 'días'}</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="info-row">
-          <span class="info-label">Operador</span>
-          <span class="info-value">${escHtml(u.operador)}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Motivo</span>
-          <span class="info-value">
-            <span class="motivo-chip ${u.motivo.startsWith('Taller') ? 'taller' : 'otro'}">
-              ${escHtml(u.motivo)}
-            </span>
-          </span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <div class="entry-time">Entrada: ${escHtml(u.fecha)} ${escHtml(u.hora)}</div>
-        <button class="btn-baja" onclick="abrirModal('${escHtml(u.folio)}','${escHtml(u.unidad)}','Entradas',${u.rowIndex})">
-          Dar de Baja
-        </button>
-      </div>
-    </div>
-  `).join('');
+  if (!entradas.length) { grid.innerHTML = '<div class="empty-state">Sin unidades registradas en base</div>'; return; }
+  grid.innerHTML = entradas.map(function(u) {
+    return '<div class="unit-card' + (u.dias >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
+      + '<div class="card-top">'
+      +   '<div><div class="unit-num">' + escHtml(u.unidad) + '</div><div class="unit-folio">' + escHtml(u.folio) + '</div></div>'
+      +   '<div class="dias-badge"><div class="dias-num ' + colorDias(u.dias) + '">' + u.dias + '</div><div class="dias-lbl">' + (u.dias===1?'dia':'dias') + '</div></div>'
+      + '</div>'
+      + '<div class="card-body">'
+      +   '<div class="info-row"><span class="info-lbl">Operador</span><span class="info-val">' + escHtml(u.operador) + '</span></div>'
+      +   '<div class="info-row"><span class="info-lbl">Motivo</span><span class="info-val"><span class="chip ' + (u.motivo==='Taller'?'taller':'otro') + '">' + escHtml(u.motivo) + '</span></span></div>'
+      + '</div>'
+      + '<div class="card-footer">'
+      +   '<div class="entry-time">Entrada: ' + escHtml(u.fecha) + ' ' + escHtml(u.hora) + '</div>'
+      +   '<button class="btn-baja" onclick="event.stopPropagation();abrirModalBaja(\'' + escHtml(u.folio) + '\',\'' + escHtml(u.unidad) + '\',' + u.rowIndex + ',' + (u.rowIndexTaller||'null') + ')">Dar de Baja</button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
 }
 
-// ── Render Taller ─────────────────────────────────────────────
-function renderTaller(taller) {
-  const grid = document.getElementById('gridTaller');
-  document.getElementById('countTaller').textContent = taller.length;
-
-  if (!taller.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">No hay reportes de taller activos</div></div>`;
-    return;
-  }
-
-  grid.innerHTML = taller.map(u => `
-    <div class="unit-card ${claseCard(u.dias)}">
-      <div class="card-top">
-        <div>
-          <div class="unit-number">${escHtml(u.unidad)}</div>
-          <div class="unit-folio">${escHtml(u.folio)}</div>
-        </div>
-        <div class="dias-badge">
-          <div class="dias-num ${colorDias(u.dias)}">${u.dias}</div>
-          <div class="dias-label">${u.dias === 1 ? 'día' : 'días'}</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="info-row">
-          <span class="info-label">Operador</span>
-          <span class="info-value">${escHtml(u.operador)}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Planta</span>
-          <span class="info-value">${escHtml(u.planta)}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Servicio</span>
-          <span class="info-value"><span class="taller-tag">${escHtml(u.areaServicio)}</span></span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Falla</span>
-          <span class="info-value">${escHtml(u.reporteFalla)}</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <div class="entry-time">Entrada: ${escHtml(u.fecha)} ${escHtml(u.hora)}</div>
-        <button class="btn-baja" onclick="abrirModal('${escHtml(u.folio)}','${escHtml(u.unidad)}','Taller',${u.rowIndex})">
-          Dar de Baja
-        </button>
-      </div>
-    </div>
-  `).join('');
+// ── Render Taller ──────────────────────────────────────────
+function renderTaller(tallerUnidades) {
+  var grid = document.getElementById('gridTaller');
+  document.getElementById('countTaller').textContent = tallerUnidades.length;
+  if (!tallerUnidades.length) { grid.innerHTML = '<div class="empty-state">Sin reportes de taller activos</div>'; return; }
+  grid.innerHTML = tallerUnidades.map(function(u) {
+    return '<div class="unit-card' + (u.dias >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
+      + '<div class="card-top">'
+      +   '<div><div class="unit-num">' + escHtml(u.unidad) + '</div><div class="unit-folio">' + escHtml(u.folioTaller || u.folio) + '</div></div>'
+      +   '<div class="dias-badge"><div class="dias-num ' + colorDias(u.dias) + '">' + u.dias + '</div><div class="dias-lbl">' + (u.dias===1?'dia':'dias') + '</div></div>'
+      + '</div>'
+      + '<div class="card-body">'
+      +   '<div class="info-row"><span class="info-lbl">Operador</span><span class="info-val">' + escHtml(u.operador) + '</span></div>'
+      +   '<div class="info-row"><span class="info-lbl">Planta</span><span class="info-val">' + escHtml(u.planta||'—') + '</span></div>'
+      +   '<div class="info-row"><span class="info-lbl">Servicio</span><span class="info-val">' + escHtml(u.areaServicio||'—') + '</span></div>'
+      +   '<div class="info-row"><span class="info-lbl">Falla</span><span class="info-val">' + escHtml(u.reporteFalla||'—') + '</span></div>'
+      + '</div>'
+      + '<div class="card-footer">'
+      +   '<div class="entry-time">Entrada: ' + escHtml(u.fecha) + ' ' + escHtml(u.hora) + '</div>'
+      +   '<button class="btn-baja" onclick="event.stopPropagation();abrirModalBaja(\'' + escHtml(u.folio) + '\',\'' + escHtml(u.unidad) + '\',' + u.rowIndex + ',' + (u.rowIndexTaller||'null') + ')">Dar de Baja</button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
 }
 
-// ── Tabs ──────────────────────────────────────────────────────
+// ── Tabs ───────────────────────────────────────────────────
 function cambiarTab(tab) {
-  tabActual = tab;
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['todas','entradas','taller'][i] === tab);
-  });
-
-  const secE = document.getElementById('secEntradas');
-  const secT = document.getElementById('secTaller');
-
-  if (tab === 'todas') { secE.style.display = ''; secT.style.display = ''; }
-  else if (tab === 'entradas') { secE.style.display = ''; secT.style.display = 'none'; }
-  else { secE.style.display = 'none'; secT.style.display = ''; }
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+  var secE = document.getElementById('secEntradas');
+  var secT = document.getElementById('secTaller');
+  if (tab === 'todas')    { secE.style.display=''; secT.style.display=''; }
+  else if (tab==='entradas') { secE.style.display=''; secT.style.display='none'; }
+  else                    { secE.style.display='none'; secT.style.display=''; }
 }
 
-// ── Modal Baja ─────────────────────────────────────────────────
-function abrirModal(folio, unidad, sheet, rowIndex) {
-  bajaTarget = { folio, unidad, sheet, rowIndex };
+// ── Modal Baja ─────────────────────────────────────────────
+function abrirModalBaja(folio, unidad, rowIndex, rowIndexTaller) {
+  bajaTarget = { folio, unidad, rowIndex, rowIndexTaller };
   document.getElementById('modalUnitName').textContent = unidad + ' (' + folio + ')';
   document.getElementById('modalPassword').value = '';
   document.getElementById('modalError').textContent = '';
   document.getElementById('btnConfirmar').disabled = false;
   document.getElementById('btnConfirmar').textContent = 'Confirmar Baja';
   document.getElementById('modalBaja').classList.add('open');
-  setTimeout(() => document.getElementById('modalPassword').focus(), 150);
+  setTimeout(function(){ document.getElementById('modalPassword').focus(); }, 150);
 }
 
-function cerrarModal() {
-  document.getElementById('modalBaja').classList.remove('open');
-  bajaTarget = null;
-}
+function cerrarModalBaja() { document.getElementById('modalBaja').classList.remove('open'); bajaTarget = null; }
 
-document.getElementById('modalBaja').addEventListener('click', function(e) {
-  if (e.target === this) cerrarModal();
-});
+document.getElementById('modalBaja').addEventListener('click', function(e){ if(e.target===this) cerrarModalBaja(); });
 
 async function confirmarBaja() {
   if (!bajaTarget) return;
-  const password = document.getElementById('modalPassword').value;
-  if (!password) {
-    document.getElementById('modalError').textContent = 'Ingresa la contraseña.';
-    return;
-  }
-
-  const btn = document.getElementById('btnConfirmar');
-  btn.disabled = true;
-  btn.textContent = 'Procesando...';
+  var password = document.getElementById('modalPassword').value;
+  if (!password) { document.getElementById('modalError').textContent = 'Ingresa la contrasena.'; return; }
+  var btn = document.getElementById('btnConfirmar');
+  btn.disabled = true; btn.textContent = 'Procesando...';
   document.getElementById('modalError').textContent = '';
-
   try {
-    const res = await fetch('/api/baja', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...bajaTarget, password })
+    var res = await fetch('/api/baja', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ rowIndex: bajaTarget.rowIndex, rowIndexTaller: bajaTarget.rowIndexTaller, password })
     });
-    const data = await res.json();
-
-    if (data.ok) {
-      cerrarModal();
-      await cargarDatos();
-    } else {
-      document.getElementById('modalError').textContent = data.error || 'Error desconocido.';
-      btn.disabled = false;
-      btn.textContent = 'Confirmar Baja';
-    }
-  } catch (e) {
-    document.getElementById('modalError').textContent = 'Error de conexión.';
-    btn.disabled = false;
-    btn.textContent = 'Confirmar Baja';
+    var data = await res.json();
+    if (data.ok) { cerrarModalBaja(); await cargarDatos(); }
+    else { document.getElementById('modalError').textContent = data.error || 'Error.'; btn.disabled=false; btn.textContent='Confirmar Baja'; }
+  } catch(e) {
+    document.getElementById('modalError').textContent = 'Error de conexion.'; btn.disabled=false; btn.textContent='Confirmar Baja';
   }
 }
 
-// ── Util ───────────────────────────────────────────────────────
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// ── Modal Detalle + Cronometro ─────────────────────────────
+function abrirDetalle(folio) {
+  var u = datosGlobal.entradas.find(function(x){ return x.folio === folio; });
+  if (!u) return;
+
+  if (cronoInterval) { clearInterval(cronoInterval); cronoInterval = null; }
+
+  var esTaller  = u.motivo === 'Taller';
+  var tallerHtml = '';
+  if (esTaller) {
+    tallerHtml = '<div class="detalle-section">Datos de Taller</div>'
+      + fila('Folio Taller',    u.folioTaller  || '—')
+      + fila('Planta',          u.planta       || '—')
+      + fila('Area de Servicio',u.areaServicio || '—')
+      + fila('Reporte de Falla',u.reporteFalla || '—');
+  }
+
+  var html = '<div class="detalle-header">'
+    + '<div><div class="detalle-unidad">' + escHtml(u.unidad) + '</div><div class="detalle-folio">' + escHtml(u.folio) + '</div></div>'
+    + '<button class="detalle-close" onclick="cerrarDetalle()">&#x2715;</button>'
+    + '</div>'
+    + '<div style="height:16px;"></div>'
+    + '<div class="cronometro" id="cronometroBox">'
+    +   '<div><div class="crono-lbl">Tiempo en base</div><div class="crono-desde">Desde ' + escHtml(u.fecha) + ' ' + escHtml(u.hora) + '</div></div>'
+    +   '<div style="text-align:right;">'
+    +     '<div class="crono-dias" id="cronoDias">—</div>'
+    +     '<div class="crono-hms"  id="cronoHMS">--:--:--</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="detalle-body">'
+    + '<div class="detalle-section" style="padding-top:4px;">Datos de Entrada</div>'
+    + fila('Folio Entrada', u.folio)
+    + fila('Fecha Entrada', u.fecha + ' ' + u.hora)
+    + fila('Unidad',        u.unidad)
+    + fila('Operador',      u.operador)
+    + fila('Motivo',        u.motivo)
+    + tallerHtml
+    + '</div>';
+
+  document.getElementById('detalleModal').innerHTML = html;
+  document.getElementById('detalleOverlay').classList.add('open');
+
+  // Iniciar cronómetro
+  function tick() {
+    if (!u.timestamp) return;
+    var ahora    = Date.now();
+    var totalSeg = Math.floor((ahora - u.timestamp) / 1000);
+    if (totalSeg < 0) totalSeg = 0;
+    var dias = Math.floor(totalSeg / 86400);
+    var resto = totalSeg % 86400;
+    var horas = Math.floor(resto / 3600);
+    var mins  = Math.floor((resto % 3600) / 60);
+    var segs  = resto % 60;
+    var elDias = document.getElementById('cronoDias');
+    var elHMS  = document.getElementById('cronoHMS');
+    if (elDias) elDias.textContent = dias + (dias===1?' dia':' dias');
+    if (elHMS)  elHMS.textContent  = pad(horas) + ':' + pad(mins) + ':' + pad(segs);
+  }
+  tick();
+  cronoInterval = setInterval(tick, 1000);
 }
 
-// ── Init ───────────────────────────────────────────────────────
+function fila(key, val) {
+  return '<div class="detalle-row"><div class="detalle-key">' + escHtml(key) + '</div><div class="detalle-val">' + escHtml(val) + '</div></div>';
+}
+
+function cerrarDetalle(e) {
+  if (e && e.target !== document.getElementById('detalleOverlay')) return;
+  document.getElementById('detalleOverlay').classList.remove('open');
+  if (cronoInterval) { clearInterval(cronoInterval); cronoInterval = null; }
+}
+
+// ── Util ────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function pad(n) { return n.toString().padStart(2,'0'); }
+
+// ── Init ────────────────────────────────────────────────────
 cargarDatos();
-setInterval(cargarDatos, 60000); // Auto-refresh cada minuto
+setInterval(cargarDatos, 60000);
 </script>
 </body>
 </html>

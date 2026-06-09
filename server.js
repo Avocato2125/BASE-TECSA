@@ -9,11 +9,9 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Configuración Google Sheets ──────────────────────────────
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const PASS_BAJA = process.env.PASSWORD_BAJA || 'tecsa2024';
+const SHEET_ID  = process.env.GOOGLE_SHEET_ID;
+const PASS_BAJA = process.env.PASSWORD_BAJA || 'tecsa2026';
 
-// Autenticación con Service Account
 function getAuth() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   return new google.auth.GoogleAuth({
@@ -27,120 +25,121 @@ async function getSheetsClient() {
   return google.sheets({ version: 'v4', auth });
 }
 
-// ── Helpers ──────────────────────────────────────────────────
 function calcularDias(fechaStr) {
   if (!fechaStr) return 0;
-  // Formato esperado: dd/MM/yyyy
   const partes = fechaStr.trim().split('/');
   if (partes.length !== 3) return 0;
   const dia  = parseInt(partes[0], 10);
-  const mes  = parseInt(partes[1], 10) - 1; // 0-indexed
+  const mes  = parseInt(partes[1], 10) - 1;
   const anio = parseInt(partes[2], 10);
   if (isNaN(dia) || isNaN(mes) || isNaN(anio)) return 0;
   const fecha = new Date(anio, mes, dia);
-  const hoy = new Date();
+  const hoy   = new Date();
   hoy.setHours(0, 0, 0, 0);
   fecha.setHours(0, 0, 0, 0);
-  const diff = Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24));
-  return Math.max(0, diff);
+  return Math.max(0, Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24)));
 }
 
-// ── API: Obtener unidades activas ────────────────────────────
+// Convierte "dd/MM/yyyy HH:mm" a timestamp UTC para el cronómetro
+function fechaHoraATimestamp(fechaStr, horaStr) {
+  if (!fechaStr || !horaStr) return null;
+  const p = fechaStr.trim().split('/');
+  if (p.length !== 3) return null;
+  const [hh, mm] = horaStr.trim().split(':');
+  // Monterrey es UTC-6 (sin horario de verano simplificado)
+  const utc = Date.UTC(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]), parseInt(hh)+6, parseInt(mm));
+  return utc;
+}
+
+// ── API: Unidades activas ──────────────────────────────────────
 app.get('/api/unidades', async (req, res) => {
   try {
     const sheets = await getSheetsClient();
 
-    // Leer hoja Entradas
-    const entradas = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: 'Entradas!A2:I',
+    const [resEntradas, resTaller] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Entradas!A2:I' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Taller!A2:I'  }),
+    ]);
+
+    const rowsEntradas = resEntradas.data.values || [];
+    const rowsTaller   = resTaller.data.values   || [];
+
+    // Mapa unidad -> datos de taller activos (para cruzar)
+    const tallerPorUnidad = {};
+    rowsTaller.forEach((row, i) => {
+      const estado = row[8] || '';
+      const unidad = (row[3] || '').toString().toUpperCase().trim();
+      if (estado === 'ACTIVO' && unidad) {
+        tallerPorUnidad[unidad] = {
+          folioTaller:  row[0] || '',
+          planta:       row[5] || '',
+          areaServicio: row[6] || '',
+          reporteFalla: row[7] || '',
+          rowIndexTaller: i + 2,
+        };
+      }
     });
 
-    // Leer hoja Taller
-    const taller = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: 'Taller!A2:I',
-    });
-
-    const rowsEntradas = entradas.data.values || [];
-    const rowsTaller = taller.data.values || [];
-
-    // Filtrar solo ACTIVOS de Entradas
     const activos = rowsEntradas
-      .map((row, i) => ({
-        rowIndex: i + 2, // 1-indexed + header
-        folio: row[0] || '',
-        fecha: row[1] || '',
-        hora: row[2] || '',
-        unidad: row[3] || '',
-        operador: row[4] || '',
-        motivo: row[5] || '',
-        estado: row[6] || '',
-        fechaSalida: row[7] || '',
-        horaSalida: row[8] || '',
-        dias: calcularDias(row[1]),
-        sheet: 'Entradas'
-      }))
+      .map((row, i) => {
+        const unidad = (row[3] || '').toString().toUpperCase().trim();
+        const taller = tallerPorUnidad[unidad] || null;
+        return {
+          rowIndex:     i + 2,
+          folio:        row[0] || '',
+          fecha:        row[1] || '',
+          hora:         row[2] || '',
+          unidad,
+          operador:     row[4] || '',
+          motivo:       row[5] || '',
+          estado:       row[6] || '',
+          dias:         calcularDias(row[1]),
+          timestamp:    fechaHoraATimestamp(row[1], row[2]),
+          sheet:        'Entradas',
+          // Datos de taller cruzados (null si no aplica)
+          folioTaller:  taller ? taller.folioTaller  : null,
+          planta:       taller ? taller.planta        : null,
+          areaServicio: taller ? taller.areaServicio  : null,
+          reporteFalla: taller ? taller.reporteFalla  : null,
+          rowIndexTaller: taller ? taller.rowIndexTaller : null,
+        };
+      })
       .filter(r => r.estado === 'ACTIVO');
 
-    // Filtrar ACTIVOS de Taller
-    const activosTaller = rowsTaller
-      .map((row, i) => ({
-        rowIndex: i + 2,
-        folio: row[0] || '',
-        fecha: row[1] || '',
-        hora: row[2] || '',
-        unidad: row[3] || '',
-        operador: row[4] || '',
-        planta: row[5] || '',
-        areaServicio: row[6] || '',
-        reporteFalla: row[7] || '',
-        estado: row[8] || '',
-        dias: calcularDias(row[1]),
-        sheet: 'Taller'
-      }))
-      .filter(r => r.estado === 'ACTIVO');
-
-    res.json({ ok: true, entradas: activos, taller: activosTaller });
+    res.json({ ok: true, entradas: activos });
   } catch (e) {
     console.error(e);
     res.json({ ok: false, error: e.message });
   }
 });
 
-// ── API: Dar de baja una unidad ──────────────────────────────
+// ── API: Dar de baja ───────────────────────────────────────────
 app.post('/api/baja', async (req, res) => {
-  const { folio, sheet, rowIndex, password } = req.body;
+  const { rowIndex, rowIndexTaller, password } = req.body;
 
   if (password !== PASS_BAJA) {
-    return res.json({ ok: false, error: 'Contraseña incorrecta' });
+    return res.json({ ok: false, error: 'Contrasena incorrecta' });
   }
 
   try {
     const sheets = await getSheetsClient();
     const ahora = new Date();
-    const fechaSalida = ahora.toLocaleDateString('es-MX', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      timeZone: 'America/Monterrey'
-    });
-    const horaSalida = ahora.toLocaleTimeString('es-MX', {
-      hour: '2-digit', minute: '2-digit', hour12: false,
-      timeZone: 'America/Monterrey'
+    const fechaSalida = ahora.toLocaleDateString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'America/Monterrey' });
+    const horaSalida  = ahora.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Monterrey' });
+
+    // Baja en Entradas
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `Entradas!G${rowIndex}:I${rowIndex}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [['BAJA', fechaSalida, horaSalida]] }
     });
 
-    if (sheet === 'Entradas') {
-      // Actualizar columnas G (estado), H (fechaSalida), I (horaSalida)
+    // Baja en Taller si existe registro cruzado
+    if (rowIndexTaller) {
       await sheets.spreadsheets.values.update({
         spreadsheetId: SHEET_ID,
-        range: `Entradas!G${rowIndex}:I${rowIndex}`,
-        valueInputOption: 'RAW',
-        requestBody: { values: [['BAJA', fechaSalida, horaSalida]] }
-      });
-    } else if (sheet === 'Taller') {
-      // Actualizar columna I (estado)
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID,
-        range: `Taller!I${rowIndex}`,
+        range: `Taller!I${rowIndexTaller}`,
         valueInputOption: 'RAW',
         requestBody: { values: [['BAJA']] }
       });
@@ -153,10 +152,9 @@ app.post('/api/baja', async (req, res) => {
   }
 });
 
-// ── Servir frontend ──────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`TECSA Dashboard corriendo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`TECSA Dashboard en puerto ${PORT}`));
