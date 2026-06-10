@@ -389,7 +389,7 @@ function renderPanel(tipo) {
     var chipBg     = esTaller ? 'rgba(75,142,232,0.12)' : 'rgba(232,123,75,0.12)';
     var chipColor  = esTaller ? 'var(--accent2)' : 'var(--orange)';
     var chipBorder = esTaller ? 'rgba(75,142,232,0.3)' : 'rgba(232,123,75,0.3)';
-    var cardBorder = u.dias >= 1 ? '1px solid rgba(232,75,75,0.25)' : '1px solid var(--border)';
+    var cardBorder = d >= 1 ? '1px solid rgba(232,75,75,0.25)' : '1px solid var(--border)';
     var num = cfg.orden ? '<div style="font-size:12px;color:var(--muted);min-width:18px;text-align:center;">' + (i+1) + '</div>' : '';
     html += '<div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,0.02);border:' + cardBorder + ';border-radius:8px;padding:12px 14px;cursor:pointer;" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
       + num
@@ -423,7 +423,7 @@ function renderEntradas(entradas) {
     return '<div class="unit-card' + (d >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
       + '<div class="card-top">'
       +   '<div><div class="unit-num">' + escHtml(u.unidad) + '</div><div class="unit-folio">' + escHtml(u.folio) + '</div></div>'
-      +   '<div class="dias-badge"><div class="dias-num ' + colorDias(u.dias) + '">' + u.dias + '</div><div class="dias-lbl">' + (u.dias===1?'dia':'dias') + '</div></div>'
+      +   '<div class="dias-badge"><div class="dias-num ' + colorDias(d) + '">' + d + '</div><div class="dias-lbl">' + (d===1?'dia':'dias') + '</div></div>'
       + '</div>'
       + '<div class="card-body">'
       +   '<div class="info-row"><span class="info-lbl">Operador</span><span class="info-val">' + escHtml(u.operador) + '</span></div>'
@@ -447,7 +447,7 @@ function renderTaller(tallerUnidades) {
     return '<div class="unit-card' + (d >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
       + '<div class="card-top">'
       +   '<div><div class="unit-num">' + escHtml(u.unidad) + '</div><div class="unit-folio">' + escHtml(u.folioTaller || u.folio) + '</div></div>'
-      +   '<div class="dias-badge"><div class="dias-num ' + colorDias(u.dias) + '">' + u.dias + '</div><div class="dias-lbl">' + (u.dias===1?'dia':'dias') + '</div></div>'
+      +   '<div class="dias-badge"><div class="dias-num ' + colorDias(d) + '">' + d + '</div><div class="dias-lbl">' + (d===1?'dia':'dias') + '</div></div>'
       + '</div>'
       + '<div class="card-body">'
       +   '<div class="info-row"><span class="info-lbl">Operador</span><span class="info-val">' + escHtml(u.operador) + '</span></div>'
