@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const SHEET_ID  = process.env.GOOGLE_SHEET_ID;
-const PASS_BAJA = process.env.PASSWORD_BAJA || 'tecsa2026';
+const PASS_BAJA = process.env.PASSWORD_BAJA || 'tecsa2024';
 
 function getAuth() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -25,7 +25,7 @@ async function getSheetsClient() {
   return google.sheets({ version: 'v4', auth });
 }
 
-function calcularDias(fechaStr) {
+function calcularDias(fechaStr, horaStr) {
   if (!fechaStr) return 0;
   const partes = fechaStr.trim().split('/');
   if (partes.length !== 3) return 0;
@@ -33,11 +33,13 @@ function calcularDias(fechaStr) {
   const mes  = parseInt(partes[1], 10) - 1;
   const anio = parseInt(partes[2], 10);
   if (isNaN(dia) || isNaN(mes) || isNaN(anio)) return 0;
-  const fecha = new Date(anio, mes, dia);
-  const hoy   = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  fecha.setHours(0, 0, 0, 0);
-  return Math.max(0, Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24)));
+  const [hh, mm] = (horaStr || '00:00').split(':').map(Number);
+  // Fecha y hora exacta de entrada en zona Monterrey (UTC-6)
+  const entrada = new Date(Date.UTC(anio, mes, dia, hh + 6, mm));
+  const ahora   = new Date();
+  const diffMs  = ahora - entrada;
+  if (diffMs < 0) return 0;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
 // Convierte "dd/MM/yyyy HH:mm" a timestamp UTC para el cronómetro
