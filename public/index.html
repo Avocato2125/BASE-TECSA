@@ -297,6 +297,14 @@ var bajaTarget   = null;
 var panelActivo  = null;
 var cronoInterval= null;
 
+// ── Calcular días reales desde timestamp ──────────────────
+function diasDesde(timestamp) {
+  if (!timestamp) return 0;
+  var diff = Date.now() - timestamp;
+  if (diff < 0) return 0;
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
 // ── Reloj ─────────────────────────────────────────────────
 function actualizarReloj() {
   document.getElementById('clockDisplay').textContent =
@@ -328,7 +336,7 @@ function actualizarStats(data) {
   var total    = data.entradas.length;
   var enTaller = data.entradas.filter(function(u){ return u.motivo === 'Taller'; }).length;
   var enOtro   = data.entradas.filter(function(u){ return u.motivo !== 'Taller'; }).length;
-  var maxDias  = total ? Math.max.apply(null, data.entradas.map(function(u){ return u.dias; })) : 0;
+  var maxDias  = total ? Math.max.apply(null, data.entradas.map(function(u){ return diasDesde(u.timestamp); })) : 0;
   document.getElementById('statTotal').textContent   = total;
   document.getElementById('statTaller').textContent  = enTaller;
   document.getElementById('statOtro').textContent    = enOtro;
@@ -375,7 +383,8 @@ function renderPanel(tipo) {
 
   var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
   unidades.forEach(function(u, i) {
-    var diasCol    = u.dias >= 1 ? 'var(--red)' : 'var(--green)';
+    var d = diasDesde(u.timestamp);
+    var diasCol    = d >= 1 ? 'var(--red)' : 'var(--green)';
     var esTaller   = u.motivo === 'Taller';
     var chipBg     = esTaller ? 'rgba(75,142,232,0.12)' : 'rgba(232,123,75,0.12)';
     var chipColor  = esTaller ? 'var(--accent2)' : 'var(--orange)';
@@ -392,8 +401,8 @@ function renderPanel(tipo) {
       +   '<div style="margin-top:5px;"><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + chipBg + ';color:' + chipColor + ';border:1px solid ' + chipBorder + ';">' + escHtml(u.motivo) + '</span></div>'
       + '</div>'
       + '<div style="text-align:right;min-width:44px;">'
-      +   '<div style="font-family:Rajdhani,sans-serif;font-size:28px;font-weight:700;line-height:1;color:' + diasCol + ';">' + u.dias + '</div>'
-      +   '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;">' + (u.dias===1?'dia':'dias') + '</div>'
+      +   '<div style="font-family:Rajdhani,sans-serif;font-size:28px;font-weight:700;line-height:1;color:' + diasCol + ';">' + d + '</div>'
+      +   '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;">' + (d===1?'dia':'dias') + '</div>'
       + '</div>'
       + '</div>';
   });
@@ -410,7 +419,8 @@ function renderEntradas(entradas) {
   document.getElementById('countEntradas').textContent = entradas.length;
   if (!entradas.length) { grid.innerHTML = '<div class="empty-state">Sin unidades registradas en base</div>'; return; }
   grid.innerHTML = entradas.map(function(u) {
-    return '<div class="unit-card' + (u.dias >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
+    var d = diasDesde(u.timestamp);
+    return '<div class="unit-card' + (d >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
       + '<div class="card-top">'
       +   '<div><div class="unit-num">' + escHtml(u.unidad) + '</div><div class="unit-folio">' + escHtml(u.folio) + '</div></div>'
       +   '<div class="dias-badge"><div class="dias-num ' + colorDias(u.dias) + '">' + u.dias + '</div><div class="dias-lbl">' + (u.dias===1?'dia':'dias') + '</div></div>'
@@ -433,7 +443,8 @@ function renderTaller(tallerUnidades) {
   document.getElementById('countTaller').textContent = tallerUnidades.length;
   if (!tallerUnidades.length) { grid.innerHTML = '<div class="empty-state">Sin reportes de taller activos</div>'; return; }
   grid.innerHTML = tallerUnidades.map(function(u) {
-    return '<div class="unit-card' + (u.dias >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
+    var d = diasDesde(u.timestamp);
+    return '<div class="unit-card' + (d >= 1 ? ' alerta' : '') + '" onclick="abrirDetalle(\'' + escHtml(u.folio) + '\')">'
       + '<div class="card-top">'
       +   '<div><div class="unit-num">' + escHtml(u.unidad) + '</div><div class="unit-folio">' + escHtml(u.folioTaller || u.folio) + '</div></div>'
       +   '<div class="dias-badge"><div class="dias-num ' + colorDias(u.dias) + '">' + u.dias + '</div><div class="dias-lbl">' + (u.dias===1?'dia':'dias') + '</div></div>'
