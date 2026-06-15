@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Taller — TECSA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:      #0d0d14;
+    --surface: #16161f;
+    --surface2:#1e1e2e;
+    --border:  #2a2a3d;
+    --accent:  #e8b84b;
+    --accent2: #4b8ee8;
+    --green:   #4be88a;
+    --red:     #e84b4b;
+    --text:    #e8e8f0;
+    --muted:   #7070a0;
+    --radius:  10px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(232,184,75,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(75,142,232,0.03) 0%, transparent 50%);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .logo-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .logo-box  { width:42px; height:42px; display:flex; align-items:center; justify-content:center; }
+  .logo-box img { width:42px; height:42px; object-fit:contain; }
+  .brand     { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:20px; color:var(--accent); letter-spacing:1px; }
+  .brand-sub { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+  .datetime-row { display:flex; gap:10px; }
+  .dt-chip {
+    background: rgba(232,184,75,0.08); border:1px solid rgba(232,184,75,0.2);
+    border-radius:6px; padding:5px 12px;
+    font-size:13px; color:var(--accent);
+    font-family:'Rajdhani',sans-serif; font-weight:600; letter-spacing:0.5px;
+  }
+
+  /* INFO UNIDAD */
+  .unidad-banner {
+    background: rgba(232,184,75,0.06);
+    border: 1px solid rgba(232,184,75,0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 20px 28px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .unidad-num { font-family:'Rajdhani',sans-serif; font-size:32px; font-weight:700; color:var(--accent); line-height:1; }
+  .unidad-info { flex:1; }
+  .unidad-info div { font-size:13px; color:var(--text); }
+  .unidad-info span { font-size:11px; color:var(--muted); }
+  .unidad-folio { font-family:'Rajdhani',sans-serif; font-size:13px; color:var(--accent2); }
+
+  /* FORM BODY */
+  .form-body { padding: 24px 28px 28px; }
+
+  /* SECCIÓN */
+  .seccion {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .seccion-header {
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    transition: background 0.18s;
+    user-select: none;
+  }
+  .seccion-header:hover { background: #242436; }
+  .seccion-header.active { background: #1e2038; border-bottom: 1px solid var(--border); }
+
+  .seccion-titulo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .seccion-check {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.18s; flex-shrink: 0;
+  }
+  .seccion-check.checked { background: var(--accent); border-color: var(--accent); }
+  .seccion-check.checked::after { content: ''; width:10px; height:6px; border-left:2px solid #0d0d14; border-bottom:2px solid #0d0d14; transform:rotate(-45deg); margin-top:-2px; }
+
+  .seccion-arrow { font-size:11px; color:var(--muted); transition:transform 0.2s; }
+  .seccion-arrow.open { transform:rotate(180deg); }
+
+  .seccion-body {
+    display: none;
+    padding: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .seccion-body.open { display: block; }
+
+  /* CAMPO */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 11px; font-weight:500; color:var(--muted);
+    letter-spacing:1.2px; text-transform:uppercase; margin-bottom:7px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select, textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,184,75,0.08);
+  }
+  input::placeholder, textarea::placeholder { color: var(--muted); }
+  select option { background: #16161f; }
+  textarea { resize:vertical; min-height:72px; }
+
+  /* SI/NO */
+  .sino-row { display:flex; gap:8px; }
+  .sino-btn {
+    flex:1; padding:10px; border-radius:8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    color: var(--text); font-size:14px; font-weight:500;
+    cursor:pointer; transition:all 0.18s; text-align:center;
+    font-family:'Inter',sans-serif;
+  }
+  .sino-btn:hover { border-color:var(--accent); }
+  .sino-btn.sel-si  { background:rgba(75,232,138,0.1); border-color:var(--green); color:var(--green); }
+  .sino-btn.sel-no  { background:rgba(232,75,75,0.08); border-color:var(--red); color:var(--red); }
+
+  /* SUB-SECCIÓN condicional */
+  .sub-cond {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+    display: none;
+  }
+  .sub-cond.open { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+  .sub-label {
+    font-size:11px; color:var(--accent2); letter-spacing:1.5px;
+    text-transform:uppercase; font-weight:600; margin-bottom:12px;
+  }
+
+  /* FOTO */
+  .foto-area {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.18s;
+    position: relative;
+  }
+  .foto-area:hover { border-color: var(--accent); }
+  .foto-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .foto-area-label { font-size:13px; color:var(--muted); }
+  .foto-area-label span { color:var(--accent); }
+  .foto-preview { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; justify-content:center; }
+  .foto-thumb {
+    width:72px; height:72px; object-fit:cover;
+    border-radius:6px; border:1px solid var(--border);
+  }
+
+  /* DIVIDER */
+  .divider {
+    border:none; border-top:1px solid var(--border);
+    margin: 14px 0;
+  }
+
+  /* FILTROS grid */
+  .filtros-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* BTN SUBMIT */
+  .btn-submit {
+    width:100%; background:var(--accent); color:#0d0d14;
+    border:none; border-radius:var(--radius); padding:15px;
+    font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    cursor:pointer; transition:all 0.2s; margin-top:24px;
+  }
+  .btn-submit:hover:not(:disabled) { background:#f0c45a; transform:translateY(-1px); }
+  .btn-submit:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* ÉXITO */
+  .success-panel { display:none; text-align:center; padding:16px 0 8px; }
+  .success-check { width:56px; height:56px; background:rgba(75,232,138,0.12); border:2px solid rgba(75,232,138,0.4); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+  .success-check svg { width:28px; height:28px; stroke:var(--green); fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+  .success-title { font-family:'Rajdhani',sans-serif; font-size:22px; font-weight:700; color:var(--green); margin-bottom:6px; }
+  .success-sub   { font-size:13px; color:var(--muted); }
+
+  .error-msg { background:rgba(232,75,75,0.08); border:1px solid rgba(232,75,75,0.25); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--red); margin-top:12px; display:none; }
+
+  .progress-bar {
+    height: 3px; background: var(--border); border-radius: 2px; margin-top: 16px; display:none;
+  }
+  .progress-fill { height:100%; background:var(--accent); border-radius:2px; width:0%; transition:width 0.3s; }
+
+  @media(max-width:480px) {
+    .form-body { padding:18px 16px 20px; }
+    .unidad-banner { margin:16px 16px 0; }
+    .filtros-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-box"><img id="logoImg" src="" alt="TECSA"></div>
+      <div>
+        <div class="brand">TECSA · TALLER</div>
+        <div class="brand-sub">Reporte de Servicio</div>
+      </div>
+    </div>
+    <div class="datetime-row">
+      <div class="dt-chip" id="fechaDisplay">--/--/----</div>
+      <div class="dt-chip" id="horaDisplay">--:--</div>
+    </div>
+  </div>
+
+  <!-- BANNER UNIDAD -->
+  <div class="unidad-banner" id="unidadBanner" style="display:none;">
+    <div class="unidad-num" id="bannerUnidad">—</div>
+    <div class="unidad-info">
+      <div id="bannerOperador">—</div>
+      <span id="bannerPlanta">—</span>
+    </div>
+    <div class="unidad-folio" id="bannerFolio">—</div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-body">
+
+    <!-- BUSCAR UNIDAD -->
+    <div id="buscarSection">
+      <div class="field">
+        <label>Folio de Entrada</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="folioInput" placeholder="Ej. 06/26-001" autocomplete="off" style="flex:1;">
+          <button onclick="buscarFolio()" style="background:var(--accent);border:none;border-radius:var(--radius);padding:0 18px;color:#0d0d14;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Buscar</button>
+        </div>
+        <div id="buscarError" style="font-size:12px;color:var(--red);margin-top:6px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- CONTENIDO FORMULARIO (se muestra tras buscar) -->
+    <div id="formContent" style="display:none;">
+
+      <!-- Nombre mecánico -->
+      <div class="field" style="margin-bottom:20px;">
+        <label>Nombre del Mecanico</label>
+        <input type="text" id="mecanico" placeholder="Nombre completo">
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           ÁREA: TALLER MECÁNICO
+      ══════════════════════════════════════════ -->
+      <div class="seccion" id="sec-taller">
+        <div class="seccion-header" onclick="toggleSeccion('taller')">
+          <div class="seccion-titulo">
+            <div class="seccion-check" id="check-taller"></div>
+            Taller Mecanico
+          </div>
+          <div class="seccion-arrow" id="arrow-taller">&#9660;</div>
+        </div>
+        <div class="seccion-body" id="body-taller">
+
+          <!-- Cambio de aceite -->
+          <div class="field">
+            <label>Cambio de Aceite</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'aceite','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'aceite','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-aceite">
+              <div class="sub-label">Detalles — Cambio de Aceite</div>
+              <div class="field"><label>Km del Odometro</label><input type="number" id="aceite-km" placeholder="Km actuales"></div>
+              <div class="field"><label>Capacidad teorica del motor (litros)</label><input type="number" id="aceite-cap" placeholder="Litros segun manual" step="0.1"></div>
+              <div class="field"><label>Volumen de aceite retirado (litros)</label><input type="number" id="aceite-anterior" placeholder="Litros anteriores" step="0.1"></div>
+              <div class="field">
+                <label>Nivel criticamente bajo?</label>
+                <div class="sino-row">
+                  <button class="sino-btn" onclick="sino(this,'nivel-bajo','si')">Si</button>
+                  <button class="sino-btn" onclick="sino(this,'nivel-bajo','no')">No</button>
+                </div>
+              </div>
+              <div class="field"><label>Volumen de aceite nuevo ingresado (litros)</label><input type="number" id="aceite-nuevo" placeholder="Litros nuevos" step="0.1"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-aceite')"><input type="file" id="foto-aceite" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-aceite')"><div class="foto-area-label">Toca para subir foto — <span>aceite nuevo y usado</span></div><div class="foto-preview" id="prev-aceite"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="aceite-obs" placeholder="Observaciones adicionales..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Liquido de frenos -->
+          <div class="field">
+            <label>Cambio de Liquido de Frenos</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'frenos','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'frenos','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-frenos">
+              <div class="sub-label">Detalles — Liquido de Frenos</div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-frenos')"><input type="file" id="foto-frenos" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-frenos')"><div class="foto-area-label">Toca para subir foto — <span>antes y despues</span></div><div class="foto-preview" id="prev-frenos"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="frenos-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Servicio -->
+          <div class="field">
+            <label>Servicio</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'servicio','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'servicio','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-servicio">
+              <div class="sub-label">Detalles — Servicio</div>
+
+              <!-- Engrasado -->
+              <div class="field">
+                <label>Engrasado</label>
+                <div class="sino-row">
+                  <button class="sino-btn" onclick="sino(this,'engrasado','si')">Si</button>
+                  <button class="sino-btn" onclick="sino(this,'engrasado','no')">No</button>
+                </div>
+                <div class="sub-cond" id="cond-engrasado">
+                  <div class="field"><label>Evidencia</label><div class="foto-area" onclick="triggerFoto('foto-engrasado')"><input type="file" id="foto-engrasado" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-engrasado')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-engrasado"></div></div></div>
+                  <div class="field"><label>Observaciones</label><textarea id="engrasado-obs" placeholder="Observaciones..."></textarea></div>
+                </div>
+              </div>
+
+              <hr class="divider">
+
+              <!-- Cambio de aceite dentro de servicio -->
+              <div class="field">
+                <label>Cambio de Aceite (en servicio)</label>
+                <div class="sino-row">
+                  <button class="sino-btn" onclick="sino(this,'srv-aceite','si')">Si</button>
+                  <button class="sino-btn" onclick="sino(this,'srv-aceite','no')">No</button>
+                </div>
+                <div class="sub-cond" id="cond-srv-aceite">
+                  <div class="sub-label">Detalles — Cambio de Aceite</div>
+                  <div class="field"><label>Km del Odometro</label><input type="number" id="srv-aceite-km" placeholder="Km actuales"></div>
+                  <div class="field"><label>Capacidad teorica (litros)</label><input type="number" id="srv-aceite-cap" placeholder="Litros segun manual" step="0.1"></div>
+                  <div class="field"><label>Volumen retirado (litros)</label><input type="number" id="srv-aceite-anterior" placeholder="Litros anteriores" step="0.1"></div>
+                  <div class="field">
+                    <label>Nivel criticamente bajo?</label>
+                    <div class="sino-row">
+                      <button class="sino-btn" onclick="sino(this,'srv-nivel-bajo','si')">Si</button>
+                      <button class="sino-btn" onclick="sino(this,'srv-nivel-bajo','no')">No</button>
+                    </div>
+                  </div>
+                  <div class="field"><label>Volumen nuevo (litros)</label><input type="number" id="srv-aceite-nuevo" placeholder="Litros nuevos" step="0.1"></div>
+                  <div class="field"><label>Evidencia</label><div class="foto-area" onclick="triggerFoto('foto-srv-aceite')"><input type="file" id="foto-srv-aceite" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-srv-aceite')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-srv-aceite"></div></div></div>
+                  <div class="field"><label>Observaciones</label><textarea id="srv-aceite-obs" placeholder="Observaciones..."></textarea></div>
+                </div>
+              </div>
+
+              <hr class="divider">
+
+              <!-- Cambio de filtros -->
+              <div class="field">
+                <label>Cambio de Filtros</label>
+                <div class="sino-row">
+                  <button class="sino-btn" onclick="sino(this,'filtros','si')">Si</button>
+                  <button class="sino-btn" onclick="sino(this,'filtros','no')">No</button>
+                </div>
+                <div class="sub-cond" id="cond-filtros">
+                  <div class="sub-label">Selecciona filtros cambiados</div>
+                  <div class="filtros-grid" id="filtrosGrid">
+                    <!-- Se genera dinámicamente -->
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Afinación -->
+          <div class="field">
+            <label>Afinacion</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'afinacion','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'afinacion','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-afinacion">
+              <div class="sub-label">Detalles — Afinacion</div>
+              <div class="field"><label>Km del Odometro</label><input type="number" id="afin-km" placeholder="Km actuales"></div>
+              <div class="field"><label>Piezas cambiadas</label><input type="text" id="afin-piezas" placeholder="Ej. bujias, cables, distribuidor..."></div>
+              <div class="field"><label>Materiales usados</label><input type="text" id="afin-materiales" placeholder="Especifica materiales y cantidades"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-afinacion')"><input type="file" id="foto-afinacion" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-afinacion')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-afinacion"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="afin-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Cambio de piezas mecánico -->
+          <div class="field">
+            <label>Cambio de Piezas</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'piezas-tal','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'piezas-tal','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-piezas-tal">
+              <div class="sub-label">Detalles — Cambio de Piezas</div>
+              <div id="piezas-tal-lista"></div>
+              <button type="button" onclick="agregarPieza('tal')" style="margin-top:8px;background:transparent;border:1px dashed var(--border);border-radius:8px;padding:8px 16px;color:var(--muted);cursor:pointer;font-size:13px;width:100%;font-family:'Inter',sans-serif;">+ Agregar pieza</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Observaciones Generales — Taller Mecanico</label>
+            <textarea id="obs-taller" placeholder="Observaciones generales del area mecanica..."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           ÁREA: ELÉCTRICO
+      ══════════════════════════════════════════ -->
+      <div class="seccion" id="sec-electrico">
+        <div class="seccion-header" onclick="toggleSeccion('electrico')">
+          <div class="seccion-titulo">
+            <div class="seccion-check" id="check-electrico"></div>
+            Electrico
+          </div>
+          <div class="seccion-arrow" id="arrow-electrico">&#9660;</div>
+        </div>
+        <div class="seccion-body" id="body-electrico">
+
+          <!-- Carga de pilas -->
+          <div class="field">
+            <label>Carga de Pilas / Baterias</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'carga-pilas','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'carga-pilas','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-carga-pilas">
+              <div class="sub-label">Detalles — Carga de Pilas</div>
+              <div class="field"><label>Voltaje anterior (V)</label><input type="number" id="pilas-volt-ant" placeholder="Voltaje inicial" step="0.1"></div>
+              <div class="field"><label>Voltaje nuevo (V)</label><input type="number" id="pilas-volt-nuevo" placeholder="Voltaje final" step="0.1"></div>
+              <div class="field"><label>Evidencia — Cascos viejos y nuevos</label><div class="foto-area" onclick="triggerFoto('foto-pilas')"><input type="file" id="foto-pilas" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-pilas')"><div class="foto-area-label">Toca para subir foto — <span>estado anterior y nuevo</span></div><div class="foto-preview" id="prev-pilas"></div></div></div>
+              <div class="field"><label>Observaciones / Motivo de cambio</label><textarea id="pilas-obs" placeholder="Por que se realizo el cambio..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Cambio de piezas eléctrico -->
+          <div class="field">
+            <label>Cambio de Piezas</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'piezas-elec','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'piezas-elec','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-piezas-elec">
+              <div class="sub-label">Detalles — Cambio de Piezas</div>
+              <div id="piezas-elec-lista"></div>
+              <button type="button" onclick="agregarPieza('elec')" style="margin-top:8px;background:transparent;border:1px dashed var(--border);border-radius:8px;padding:8px 16px;color:var(--muted);cursor:pointer;font-size:13px;width:100%;font-family:'Inter',sans-serif;">+ Agregar pieza</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Observaciones Generales — Electrico</label>
+            <textarea id="obs-electrico" placeholder="Observaciones generales del area electrica..."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           ÁREA: IMAGEN
+      ══════════════════════════════════════════ -->
+      <div class="seccion" id="sec-imagen">
+        <div class="seccion-header" onclick="toggleSeccion('imagen')">
+          <div class="seccion-titulo">
+            <div class="seccion-check" id="check-imagen"></div>
+            Imagen
+          </div>
+          <div class="seccion-arrow" id="arrow-imagen">&#9660;</div>
+        </div>
+        <div class="seccion-body" id="body-imagen">
+
+          <!-- Pegado de calcas -->
+          <div class="field">
+            <label>Pegado de Calcas</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'calcas','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'calcas','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-calcas">
+              <div class="sub-label">Detalles — Calcas</div>
+              <div class="field"><label>Materiales usados</label><input type="text" id="calcas-mat" placeholder="Tipo de calca, medidas..."></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-calcas')"><input type="file" id="foto-calcas" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-calcas')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-calcas"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="calcas-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Asiento -->
+          <div class="field">
+            <label>Asiento</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'asiento','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'asiento','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-asiento">
+              <div class="sub-label">Detalles — Asiento</div>
+              <div class="field"><label>Materiales usados</label><input type="text" id="asiento-mat" placeholder="Tipo de tapizado, material..."></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-asiento')"><input type="file" id="foto-asiento" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-asiento')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-asiento"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="asiento-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Pintura -->
+          <div class="field">
+            <label>Pintura</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'pintura','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'pintura','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-pintura">
+              <div class="sub-label">Detalles — Pintura</div>
+              <div class="field"><label>Area pintada</label><input type="text" id="pintura-area" placeholder="Ej. facia delantera, cajon completo..."></div>
+              <div class="field"><label>Materiales usados</label><input type="text" id="pintura-mat" placeholder="Tipo de pintura, cantidad..."></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-pintura')"><input type="file" id="foto-pintura" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-pintura')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-pintura"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="pintura-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Soldadura -->
+          <div class="field">
+            <label>Soldadura</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'soldadura','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'soldadura','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-soldadura">
+              <div class="sub-label">Detalles — Soldadura</div>
+              <div class="field"><label>Materiales usados</label><input type="text" id="sold-mat" placeholder="Tipo de soldadura, material..."></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-soldadura')"><input type="file" id="foto-soldadura" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-soldadura')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-soldadura"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="sold-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Cambio de piezas imagen -->
+          <div class="field">
+            <label>Cambio de Piezas (facia, defensa, etc.)</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'piezas-img','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'piezas-img','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-piezas-img">
+              <div class="sub-label">Detalles — Cambio de Piezas</div>
+              <div id="piezas-img-lista"></div>
+              <button type="button" onclick="agregarPieza('img')" style="margin-top:8px;background:transparent;border:1px dashed var(--border);border-radius:8px;padding:8px 16px;color:var(--muted);cursor:pointer;font-size:13px;width:100%;font-family:'Inter',sans-serif;">+ Agregar pieza</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Observaciones Generales — Imagen</label>
+            <textarea id="obs-imagen" placeholder="Observaciones generales del area de imagen..."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           ÁREA: LLANTAS
+      ══════════════════════════════════════════ -->
+      <div class="seccion" id="sec-llantas">
+        <div class="seccion-header" onclick="toggleSeccion('llantas')">
+          <div class="seccion-titulo">
+            <div class="seccion-check" id="check-llantas"></div>
+            Llantas
+          </div>
+          <div class="seccion-arrow" id="arrow-llantas">&#9660;</div>
+        </div>
+        <div class="seccion-body" id="body-llantas">
+
+          <!-- Cambio de llanta -->
+          <div class="field">
+            <label>Cambio de Llanta</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'cambio-llanta','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'cambio-llanta','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-cambio-llanta">
+              <div class="sub-label">Detalles — Cambio de Llanta</div>
+              <div class="field"><label>Marca de la llanta nueva</label><input type="text" id="llanta-marca" placeholder="Marca y medida"></div>
+              <div class="field"><label>Evidencia — Llanta nueva y usada</label><div class="foto-area" onclick="triggerFoto('foto-llanta')"><input type="file" id="foto-llanta" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-llanta')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-llanta"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="llanta-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Reparacion -->
+          <div class="field">
+            <label>Reparacion de Llanta (ponchadura)</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rep-llanta','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rep-llanta','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rep-llanta">
+              <div class="sub-label">Detalles — Reparacion</div>
+              <div class="field"><label>Porcentaje de vida restante (%)</label><input type="number" id="llanta-vida" placeholder="Ej. 60" min="0" max="100"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-rep-llanta')"><input type="file" id="foto-rep-llanta" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-rep-llanta')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-rep-llanta"></div></div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rep-llanta-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Observaciones Generales — Llantas</label>
+            <textarea id="obs-llantas" placeholder="Observaciones generales del area de llantas..."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ENVIAR -->
+      <button class="btn-submit" id="btnEnviar" onclick="enviarReporte()">Enviar Reporte</button>
+      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="error-msg" id="errorMsg"></div>
+
+    </div><!-- /formContent -->
+
+    <!-- ÉXITO -->
+    <div class="success-panel" id="successPanel">
+      <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="success-title">Reporte Enviado</div>
+      <div class="success-sub" id="successSub">El reporte ha sido guardado correctamente.</div>
+    </div>
+
+  </div><!-- /form-body -->
+</div><!-- /card -->
+
+<script>
+// ── CONFIG — cambia estas URLs ────────────────────────────
+var APPS_SCRIPT_URL    = 'AKfycbxePseJF1iiFCAx0mdxIa42ayAzkHUfSb5iAAvui7ReJ9jwLhDVQmWz0WedilKmmUPhvw';
+var DASHBOARD_API_URL  = ''; // Se auto-detecta
+var LOGO_B64           = 'LOGO_BASE64_AQUI'; // Se inyecta al build
+
+// ── Estado ────────────────────────────────────────────────
+var estadoSino = {};    // clave -> 'si' | 'no'
+var datosUnidad = null;
+var piezasContadores = { tal:0, elec:0, img:0 };
+
+var FILTROS = [
+  { id:'fil-aire',      label:'Filtro de Aire' },
+  { id:'fil-diesel',    label:'Filtro de Diesel' },
+  { id:'fil-aceite',    label:'Filtro de Aceite' },
+  { id:'fil-separador', label:'Filtro Separador de Diesel' },
+];
+
+// ── Init ──────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  tick();
+  setInterval(tick, 1000);
+  document.getElementById('logoImg').src = LOGO_B64;
+  generarFiltros();
+  // Auto-detectar URL del dashboard
+  DASHBOARD_API_URL = window.location.origin;
+});
+
+function tick() {
+  var ahora = new Date();
+  document.getElementById('fechaDisplay').textContent =
+    ahora.toLocaleDateString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric' });
+  document.getElementById('horaDisplay').textContent =
+    ahora.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', hour12:false });
+}
+
+// ── Generar filtros ───────────────────────────────────────
+function generarFiltros() {
+  var grid = document.getElementById('filtrosGrid');
+  grid.innerHTML = FILTROS.map(function(f) {
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;background:rgba(255,255,255,0.02);">'
+      + '<div style="font-size:13px;margin-bottom:8px;">' + f.label + '</div>'
+      + '<div class="sino-row">'
+      +   '<button class="sino-btn" onclick="sino(this,\'' + f.id + '\',\'si\')">Si</button>'
+      +   '<button class="sino-btn" onclick="sino(this,\'' + f.id + '\',\'no\')">No</button>'
+      + '</div>'
+      + '<div class="sub-cond" id="cond-' + f.id + '">'
+      +   '<div class="field" style="margin-top:8px;"><label>Evidencia</label>'
+      +     '<div class="foto-area" onclick="triggerFoto(\'foto-' + f.id + '\')">'
+      +       '<input type="file" id="foto-' + f.id + '" accept="image/*" multiple onchange="previsualizarFotos(this,\'prev-' + f.id + '\')">'
+      +       '<div class="foto-area-label">Toca para subir foto</div>'
+      +       '<div class="foto-preview" id="prev-' + f.id + '"></div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="field"><label>Observaciones</label><textarea id="obs-' + f.id + '" placeholder="Observaciones..."></textarea></div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Buscar folio ──────────────────────────────────────────
+async function buscarFolio() {
+  var folio = document.getElementById('folioInput').value.trim().toUpperCase();
+  var errEl = document.getElementById('buscarError');
+  if (!folio) { errEl.textContent = 'Ingresa un folio.'; errEl.style.display='block'; return; }
+
+  errEl.style.display = 'none';
+
+  try {
+    var res  = await fetch(DASHBOARD_API_URL + '/api/unidades');
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    var unidad = data.entradas.find(function(u) { return u.folio === folio; });
+    if (!unidad) {
+      errEl.textContent = 'Folio no encontrado o unidad no activa.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    datosUnidad = unidad;
+    document.getElementById('bannerUnidad').textContent  = unidad.unidad;
+    document.getElementById('bannerOperador').textContent= unidad.operador;
+    document.getElementById('bannerPlanta').textContent  = unidad.planta || '—';
+    document.getElementById('bannerFolio').textContent   = unidad.folio;
+    document.getElementById('unidadBanner').style.display = 'flex';
+    document.getElementById('buscarSection').style.display = 'none';
+    document.getElementById('formContent').style.display  = 'block';
+  } catch(e) {
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// ── Secciones ─────────────────────────────────────────────
+function toggleSeccion(id) {
+  var body  = document.getElementById('body-'  + id);
+  var arrow = document.getElementById('arrow-' + id);
+  var check = document.getElementById('check-' + id);
+  var isOpen = body.classList.toggle('open');
+  arrow.classList.toggle('open', isOpen);
+  check.classList.toggle('checked', isOpen);
+  document.getElementById('seccion-header-' + id);
+  document.querySelector('#sec-' + id + ' .seccion-header').classList.toggle('active', isOpen);
+}
+
+// ── Si/No condicional ─────────────────────────────────────
+function sino(btn, clave, valor) {
+  estadoSino[clave] = valor;
+  var parent = btn.closest('.sino-row');
+  parent.querySelectorAll('.sino-btn').forEach(function(b){ b.className='sino-btn'; });
+  btn.classList.add(valor === 'si' ? 'sel-si' : 'sel-no');
+  var cond = document.getElementById('cond-' + clave);
+  if (cond) cond.classList.toggle('open', valor === 'si');
+}
+
+// ── Piezas dinámicas ──────────────────────────────────────
+function agregarPieza(area) {
+  var n = ++piezasContadores[area];
+  var lista = document.getElementById('piezas-' + area + '-lista');
+  var id = 'pieza-' + area + '-' + n;
+  var div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;position:relative;';
+  div.innerHTML =
+    '<button type="button" onclick="document.getElementById(\'' + id + '\').remove()" '
+    + 'style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;">&#x2715;</button>'
+    + '<div class="sub-label" style="margin-bottom:10px;">Pieza ' + n + '</div>'
+    + '<div class="field"><label>Nombre de la pieza</label><input type="text" id="' + id + '-nombre" placeholder="Nombre o descripcion"></div>'
+    + '<div class="field"><label>Materiales usados</label><input type="text" id="' + id + '-mat" placeholder="Materiales y cantidades"></div>'
+    + '<div class="field"><label>Evidencia — Pieza nueva y vieja</label>'
+    +   '<div class="foto-area" onclick="triggerFoto(\'' + id + '-foto\')">'
+    +     '<input type="file" id="' + id + '-foto" accept="image/*" multiple onchange="previsualizarFotos(this,\'' + id + '-prev\')">'
+    +     '<div class="foto-area-label">Toca para subir foto</div>'
+    +     '<div class="foto-preview" id="' + id + '-prev"></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="field"><label>Observaciones</label><textarea id="' + id + '-obs" placeholder="Observaciones..."></textarea></div>';
+  lista.appendChild(div);
+}
+
+// ── Foto / compresión ─────────────────────────────────────
+function triggerFoto(inputId) {
+  var el = document.getElementById(inputId);
+  if (el) el.click();
+}
+
+async function previsualizarFotos(input, prevId) {
+  var prev = document.getElementById(prevId);
+  if (!prev) return;
+  prev.innerHTML = '';
+  for (var i = 0; i < input.files.length; i++) {
+    var file = input.files[i];
+    var url  = URL.createObjectURL(file);
+    var img  = document.createElement('img');
+    img.src = url; img.className = 'foto-thumb';
+    prev.appendChild(img);
+  }
+}
+
+async function comprimirYConvertir(file) {
+  var options = { maxSizeMB: 0.2, maxWidthOrHeight: 1280, useWebWorker: true };
+  try {
+    var compressed = await imageCompression(file, options);
+    return await fileToBase64(compressed);
+  } catch(e) {
+    return await fileToBase64(file);
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload  = function(e) { resolve(e.target.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function procesarFotos(inputId) {
+  var input = document.getElementById(inputId);
+  if (!input || !input.files.length) return [];
+  var results = [];
+  for (var i = 0; i < input.files.length; i++) {
+    var b64 = await comprimirYConvertir(input.files[i]);
+    results.push({ nombre: input.files[i].name, base64: b64 });
+  }
+  return results;
+}
+
+// ── Recolectar piezas ─────────────────────────────────────
+async function recolectarPiezas(area) {
+  var lista = document.getElementById('piezas-' + area + '-lista');
+  if (!lista) return [];
+  var items = lista.querySelectorAll('[id^="pieza-' + area + '-"]');
+  var result = [];
+  for (var i = 0; i < items.length; i++) {
+    var id = items[i].id;
+    result.push({
+      nombre:    (document.getElementById(id+'-nombre') || {}).value || '',
+      material:  (document.getElementById(id+'-mat')    || {}).value || '',
+      obs:       (document.getElementById(id+'-obs')    || {}).value || '',
+      fotos:     await procesarFotos(id+'-foto')
+    });
+  }
+  return result;
+}
+
+// ── Recolectar filtros ────────────────────────────────────
+async function recolectarFiltros() {
+  var result = {};
+  for (var i = 0; i < FILTROS.length; i++) {
+    var f   = FILTROS[i];
+    var val = estadoSino[f.id];
+    if (val === 'si') {
+      result[f.id] = {
+        cambiado: true,
+        fotos: await procesarFotos('foto-' + f.id),
+        obs:   (document.getElementById('obs-' + f.id) || {}).value || ''
+      };
+    } else {
+      result[f.id] = { cambiado: val === 'si' };
+    }
+  }
+  return result;
+}
+
+// ── ENVIAR ────────────────────────────────────────────────
+async function enviarReporte() {
+  var btn = document.getElementById('btnEnviar');
+  var errEl = document.getElementById('errorMsg');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Preparando fotos...';
+  document.getElementById('progressBar').style.display = 'block';
+  setProgress(10);
+
+  try {
+    var mecanico = document.getElementById('mecanico').value.trim();
+    if (!mecanico) throw new Error('Ingresa el nombre del mecanico.');
+    if (!datosUnidad)  throw new Error('Busca una unidad primero.');
+
+    setProgress(20);
+
+    var reporte = {
+      // Datos de la unidad (del formulario de operador)
+      folioEntrada:  datosUnidad.folio,
+      folioTaller:   datosUnidad.folioTaller,
+      unidad:        datosUnidad.unidad,
+      operador:      datosUnidad.operador,
+      planta:        datosUnidad.planta,
+      areaServicio:  datosUnidad.areaServicio,
+      mecanico:      mecanico,
+
+      // TALLER MECÁNICO
+      taller: {
+        activo: document.getElementById('body-taller').classList.contains('open'),
+        aceite: estadoSino['aceite'] === 'si' ? {
+          km:          val('aceite-km'),
+          capTeórica:  val('aceite-cap'),
+          litrosAnt:   val('aceite-anterior'),
+          nivelBajo:   estadoSino['nivel-bajo'],
+          litrosNuevo: val('aceite-nuevo'),
+          fotos:       await procesarFotos('foto-aceite'),
+          obs:         val('aceite-obs')
+        } : null,
+        frenos: estadoSino['frenos'] === 'si' ? {
+          fotos: await procesarFotos('foto-frenos'),
+          obs:   val('frenos-obs')
+        } : null,
+        servicio: estadoSino['servicio'] === 'si' ? {
+          engrasado: estadoSino['engrasado'] === 'si' ? {
+            fotos: await procesarFotos('foto-engrasado'),
+            obs:   val('engrasado-obs')
+          } : null,
+          aceite: estadoSino['srv-aceite'] === 'si' ? {
+            km:          val('srv-aceite-km'),
+            capTeorica:  val('srv-aceite-cap'),
+            litrosAnt:   val('srv-aceite-anterior'),
+            nivelBajo:   estadoSino['srv-nivel-bajo'],
+            litrosNuevo: val('srv-aceite-nuevo'),
+            fotos:       await procesarFotos('foto-srv-aceite'),
+            obs:         val('srv-aceite-obs')
+          } : null,
+          filtros: await recolectarFiltros()
+        } : null,
+        afinacion: estadoSino['afinacion'] === 'si' ? {
+          km:        val('afin-km'),
+          piezas:    val('afin-piezas'),
+          materiales:val('afin-materiales'),
+          fotos:     await procesarFotos('foto-afinacion'),
+          obs:       val('afin-obs')
+        } : null,
+        piezas:   await recolectarPiezas('tal'),
+        obsGral:  val('obs-taller')
+      },
+
+      // ELÉCTRICO
+      electrico: {
+        activo: document.getElementById('body-electrico').classList.contains('open'),
+        cargaPilas: estadoSino['carga-pilas'] === 'si' ? {
+          voltAnt:   val('pilas-volt-ant'),
+          voltNuevo: val('pilas-volt-nuevo'),
+          fotos:     await procesarFotos('foto-pilas'),
+          obs:       val('pilas-obs')
+        } : null,
+        piezas:  await recolectarPiezas('elec'),
+        obsGral: val('obs-electrico')
+      },
+
+      // IMAGEN
+      imagen: {
+        activo: document.getElementById('body-imagen').classList.contains('open'),
+        calcas: estadoSino['calcas'] === 'si' ? {
+          material: val('calcas-mat'),
+          fotos:    await procesarFotos('foto-calcas'),
+          obs:      val('calcas-obs')
+        } : null,
+        asiento: estadoSino['asiento'] === 'si' ? {
+          material: val('asiento-mat'),
+          fotos:    await procesarFotos('foto-asiento'),
+          obs:      val('asiento-obs')
+        } : null,
+        pintura: estadoSino['pintura'] === 'si' ? {
+          area:     val('pintura-area'),
+          material: val('pintura-mat'),
+          fotos:    await procesarFotos('foto-pintura'),
+          obs:      val('pintura-obs')
+        } : null,
+        soldadura: estadoSino['soldadura'] === 'si' ? {
+          material: val('sold-mat'),
+          fotos:    await procesarFotos('foto-soldadura'),
+          obs:      val('sold-obs')
+        } : null,
+        piezas:  await recolectarPiezas('img'),
+        obsGral: val('obs-imagen')
+      },
+
+      // LLANTAS
+      llantas: {
+        activo: document.getElementById('body-llantas').classList.contains('open'),
+        cambio: estadoSino['cambio-llanta'] === 'si' ? {
+          marca: val('llanta-marca'),
+          fotos: await procesarFotos('foto-llanta'),
+          obs:   val('llanta-obs')
+        } : null,
+        reparacion: estadoSino['rep-llanta'] === 'si' ? {
+          vidaRestante: val('llanta-vida'),
+          fotos:        await procesarFotos('foto-rep-llanta'),
+          obs:          val('rep-llanta-obs')
+        } : null,
+        obsGral: val('obs-llantas')
+      }
+    };
+
+    setProgress(60);
+    btn.textContent = 'Enviando...';
+
+    var res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reporte),
+      mode: 'no-cors'
+    });
+
+    setProgress(100);
+    setTimeout(function() {
+      document.getElementById('formContent').style.display  = 'none';
+      document.getElementById('unidadBanner').style.display = 'none';
+      document.getElementById('successPanel').style.display = 'block';
+    }, 400);
+
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Enviar Reporte';
+    setProgress(0);
+    document.getElementById('progressBar').style.display = 'none';
+  }
+}
+
+function setProgress(p) {
+  document.getElementById('progressFill').style.width = p + '%';
+}
+
+function val(id) {
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+</script>
+</body>
+</html>
