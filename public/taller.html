@@ -198,24 +198,49 @@
   }
 
   /* FOTO */
-  .foto-area {
+  .foto-par {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .foto-slot {
     border: 1px dashed var(--border);
     border-radius: 8px;
-    padding: 14px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s;
+    position: relative;
+    min-height: 80px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  }
+  .foto-slot:hover { border-color: var(--accent); background: rgba(232,184,75,0.03); }
+  .foto-slot.tiene-foto { border-color: var(--green); border-style: solid; }
+  .foto-slot input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .foto-slot-icon { font-size:20px; opacity:0.4; }
+  .foto-slot-lbl { font-size:11px; color:var(--muted); letter-spacing:0.5px; font-weight:500; }
+  .foto-slot.tiene-foto .foto-slot-lbl { color:var(--green); }
+  .foto-slot-count { font-size:10px; color:var(--accent); font-weight:600; display:none; }
+  .foto-slot.tiene-foto .foto-slot-count { display:block; }
+  .foto-preview-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .foto-thumb { width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--border); cursor:pointer; transition:opacity 0.15s; }
+  .foto-thumb:hover { opacity:0.7; }
+  /* Foto simple (solo una zona) */
+  .foto-simple {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 12px;
     text-align: center;
     cursor: pointer;
     transition: border-color 0.18s;
     position: relative;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
   }
-  .foto-area:hover { border-color: var(--accent); }
-  .foto-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-  .foto-area-label { font-size:13px; color:var(--muted); }
-  .foto-area-label span { color:var(--accent); }
-  .foto-preview { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; justify-content:center; }
-  .foto-thumb {
-    width:72px; height:72px; object-fit:cover;
-    border-radius:6px; border:1px solid var(--border);
-  }
+  .foto-simple:hover { border-color: var(--accent); }
+  .foto-simple.tiene-foto { border-color: var(--green); border-style: solid; }
+  .foto-simple input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .foto-simple-lbl { font-size:13px; color:var(--muted); }
+  .foto-simple.tiene-foto .foto-simple-lbl { color:var(--green); }
 
   /* DIVIDER */
   .divider {
@@ -342,7 +367,21 @@
                 </div>
               </div>
               <div class="field"><label>Volumen de aceite nuevo ingresado (litros)</label><input type="number" id="aceite-nuevo" placeholder="Litros nuevos" step="0.1"></div>
-              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-aceite')"><input type="file" id="foto-aceite" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-aceite')"><div class="foto-area-label">Toca para subir foto — <span>aceite nuevo y usado</span></div><div class="foto-preview" id="prev-aceite"></div></div></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-aceite-antes">
+                <input type="file" id="foto-aceite-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-aceite-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Aceite Usado</div>
+                <div class="foto-slot-count" id="cnt-foto-aceite-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-aceite-despues">
+                <input type="file" id="foto-aceite-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-aceite-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Aceite Nuevo</div>
+                <div class="foto-slot-count" id="cnt-foto-aceite-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-aceite"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="aceite-obs" placeholder="Observaciones adicionales..."></textarea></div>
             </div>
           </div>
@@ -358,7 +397,21 @@
             </div>
             <div class="sub-cond" id="cond-frenos">
               <div class="sub-label">Detalles — Liquido de Frenos</div>
-              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-frenos')"><input type="file" id="foto-frenos" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-frenos')"><div class="foto-area-label">Toca para subir foto — <span>antes y despues</span></div><div class="foto-preview" id="prev-frenos"></div></div></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-frenos-antes">
+                <input type="file" id="foto-frenos-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-frenos-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Liquido Anterior</div>
+                <div class="foto-slot-count" id="cnt-foto-frenos-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-frenos-despues">
+                <input type="file" id="foto-frenos-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-frenos-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Liquido Nuevo</div>
+                <div class="foto-slot-count" id="cnt-foto-frenos-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-frenos"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="frenos-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -383,7 +436,21 @@
                   <button class="sino-btn" onclick="sino(this,'engrasado','no')">No</button>
                 </div>
                 <div class="sub-cond" id="cond-engrasado">
-                  <div class="field"><label>Evidencia</label><div class="foto-area" onclick="triggerFoto('foto-engrasado')"><input type="file" id="foto-engrasado" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-engrasado')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-engrasado"></div></div></div>
+                  <div class="field"><label>Evidencia</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-engrasado-antes">
+                <input type="file" id="foto-engrasado-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-engrasado-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-engrasado-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-engrasado-despues">
+                <input type="file" id="foto-engrasado-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-engrasado-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-engrasado-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-engrasado"></div></div>
                   <div class="field"><label>Observaciones</label><textarea id="engrasado-obs" placeholder="Observaciones..."></textarea></div>
                 </div>
               </div>
@@ -410,7 +477,21 @@
                     </div>
                   </div>
                   <div class="field"><label>Volumen nuevo (litros)</label><input type="number" id="srv-aceite-nuevo" placeholder="Litros nuevos" step="0.1"></div>
-                  <div class="field"><label>Evidencia</label><div class="foto-area" onclick="triggerFoto('foto-srv-aceite')"><input type="file" id="foto-srv-aceite" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-srv-aceite')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-srv-aceite"></div></div></div>
+                  <div class="field"><label>Evidencia</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-srv-aceite-antes">
+                <input type="file" id="foto-srv-aceite-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-srv-aceite-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Aceite Usado</div>
+                <div class="foto-slot-count" id="cnt-foto-srv-aceite-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-srv-aceite-despues">
+                <input type="file" id="foto-srv-aceite-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-srv-aceite-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Aceite Nuevo</div>
+                <div class="foto-slot-count" id="cnt-foto-srv-aceite-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-srv-aceite"></div></div>
                   <div class="field"><label>Observaciones</label><textarea id="srv-aceite-obs" placeholder="Observaciones..."></textarea></div>
                 </div>
               </div>
@@ -449,7 +530,21 @@
               <div class="field"><label>Km del Odometro</label><input type="number" id="afin-km" placeholder="Km actuales"></div>
               <div class="field"><label>Piezas cambiadas</label><input type="text" id="afin-piezas" placeholder="Ej. bujias, cables, distribuidor..."></div>
               <div class="field"><label>Materiales usados</label><input type="text" id="afin-materiales" placeholder="Especifica materiales y cantidades"></div>
-              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-afinacion')"><input type="file" id="foto-afinacion" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-afinacion')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-afinacion"></div></div></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-afinacion-antes">
+                <input type="file" id="foto-afinacion-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-afinacion-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Piezas Viejas</div>
+                <div class="foto-slot-count" id="cnt-foto-afinacion-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-afinacion-despues">
+                <input type="file" id="foto-afinacion-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-afinacion-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Piezas Nuevas</div>
+                <div class="foto-slot-count" id="cnt-foto-afinacion-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-afinacion"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="afin-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -491,19 +586,70 @@
         </div>
         <div class="seccion-body" id="body-electrico">
 
-          <!-- Carga de pilas -->
+          <!-- Carga de bateria -->
           <div class="field">
-            <label>Carga de Pilas / Baterias</label>
+            <label>Carga de Bateria</label>
             <div class="sino-row">
-              <button class="sino-btn" onclick="sino(this,'carga-pilas','si')">Si</button>
-              <button class="sino-btn" onclick="sino(this,'carga-pilas','no')">No</button>
+              <button class="sino-btn" onclick="sino(this,'carga-bat','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'carga-bat','no')">No</button>
             </div>
-            <div class="sub-cond" id="cond-carga-pilas">
-              <div class="sub-label">Detalles — Carga de Pilas</div>
-              <div class="field"><label>Voltaje anterior (V)</label><input type="number" id="pilas-volt-ant" placeholder="Voltaje inicial" step="0.1"></div>
-              <div class="field"><label>Voltaje nuevo (V)</label><input type="number" id="pilas-volt-nuevo" placeholder="Voltaje final" step="0.1"></div>
-              <div class="field"><label>Evidencia — Cascos viejos y nuevos</label><div class="foto-area" onclick="triggerFoto('foto-pilas')"><input type="file" id="foto-pilas" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-pilas')"><div class="foto-area-label">Toca para subir foto — <span>estado anterior y nuevo</span></div><div class="foto-preview" id="prev-pilas"></div></div></div>
-              <div class="field"><label>Observaciones / Motivo de cambio</label><textarea id="pilas-obs" placeholder="Por que se realizo el cambio..."></textarea></div>
+            <div class="sub-cond" id="cond-carga-bat">
+              <div class="sub-label">Detalles — Carga de Bateria</div>
+              <div class="field"><label>Voltaje anterior (V)</label><input type="number" id="bat-carga-volt-ant" placeholder="Voltaje inicial" step="0.1"></div>
+              <div class="field"><label>Voltaje despues de carga (V)</label><input type="number" id="bat-carga-volt-nuevo" placeholder="Voltaje final" step="0.1"></div>
+              <div class="field"><label>Evidencia</label>
+                <div class="foto-par">
+                  <div class="foto-slot" id="slot-foto-bat-carga-antes">
+                    <input type="file" id="foto-bat-carga-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-bat-carga-antes')">
+                    <div class="foto-slot-icon">&#128247;</div>
+                    <div class="foto-slot-lbl">Antes de Carga</div>
+                    <div class="foto-slot-count" id="cnt-foto-bat-carga-antes">0 fotos</div>
+                  </div>
+                  <div class="foto-slot" id="slot-foto-bat-carga-despues">
+                    <input type="file" id="foto-bat-carga-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-bat-carga-despues')">
+                    <div class="foto-slot-icon">&#128247;</div>
+                    <div class="foto-slot-lbl">Despues de Carga</div>
+                    <div class="foto-slot-count" id="cnt-foto-bat-carga-despues">0 fotos</div>
+                  </div>
+                </div>
+                <div class="foto-preview-row" id="prev-foto-bat-carga"></div>
+              </div>
+              <div class="field"><label>Observaciones</label><textarea id="bat-carga-obs" placeholder="Observaciones de la carga..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Cambio de bateria -->
+          <div class="field">
+            <label>Cambio de Bateria</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'cambio-bat','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'cambio-bat','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-cambio-bat">
+              <div class="sub-label">Detalles — Cambio de Bateria</div>
+              <div class="field"><label>Voltaje bateria anterior (V)</label><input type="number" id="bat-cambio-volt-ant" placeholder="Voltaje viejo" step="0.1"></div>
+              <div class="field"><label>Voltaje bateria nueva (V)</label><input type="number" id="bat-cambio-volt-nuevo" placeholder="Voltaje nuevo" step="0.1"></div>
+              <div class="field"><label>Motivo del cambio</label><textarea id="bat-cambio-motivo" placeholder="Por que se cambio la bateria..."></textarea></div>
+              <div class="field"><label>Evidencia — Bateria vieja y nueva</label>
+                <div class="foto-par">
+                  <div class="foto-slot" id="slot-foto-bat-cambio-antes">
+                    <input type="file" id="foto-bat-cambio-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-bat-cambio-antes')">
+                    <div class="foto-slot-icon">&#128247;</div>
+                    <div class="foto-slot-lbl">Bateria Vieja</div>
+                    <div class="foto-slot-count" id="cnt-foto-bat-cambio-antes">0 fotos</div>
+                  </div>
+                  <div class="foto-slot" id="slot-foto-bat-cambio-despues">
+                    <input type="file" id="foto-bat-cambio-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-bat-cambio-despues')">
+                    <div class="foto-slot-icon">&#128247;</div>
+                    <div class="foto-slot-lbl">Bateria Nueva</div>
+                    <div class="foto-slot-count" id="cnt-foto-bat-cambio-despues">0 fotos</div>
+                  </div>
+                </div>
+                <div class="foto-preview-row" id="prev-foto-bat-cambio"></div>
+              </div>
+              <div class="field"><label>Observaciones</label><textarea id="bat-cambio-obs" placeholder="Observaciones adicionales..."></textarea></div>
             </div>
           </div>
 
@@ -554,7 +700,21 @@
             <div class="sub-cond" id="cond-calcas">
               <div class="sub-label">Detalles — Calcas</div>
               <div class="field"><label>Materiales usados</label><input type="text" id="calcas-mat" placeholder="Tipo de calca, medidas..."></div>
-              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-calcas')"><input type="file" id="foto-calcas" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-calcas')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-calcas"></div></div></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-calcas-antes">
+                <input type="file" id="foto-calcas-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-calcas-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-calcas-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-calcas-despues">
+                <input type="file" id="foto-calcas-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-calcas-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-calcas-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-calcas"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="calcas-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -571,7 +731,21 @@
             <div class="sub-cond" id="cond-asiento">
               <div class="sub-label">Detalles — Asiento</div>
               <div class="field"><label>Materiales usados</label><input type="text" id="asiento-mat" placeholder="Tipo de tapizado, material..."></div>
-              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-asiento')"><input type="file" id="foto-asiento" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-asiento')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-asiento"></div></div></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-asiento-antes">
+                <input type="file" id="foto-asiento-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-asiento-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-asiento-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-asiento-despues">
+                <input type="file" id="foto-asiento-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-asiento-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-asiento-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-asiento"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="asiento-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -589,7 +763,21 @@
               <div class="sub-label">Detalles — Pintura</div>
               <div class="field"><label>Area pintada</label><input type="text" id="pintura-area" placeholder="Ej. facia delantera, cajon completo..."></div>
               <div class="field"><label>Materiales usados</label><input type="text" id="pintura-mat" placeholder="Tipo de pintura, cantidad..."></div>
-              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-pintura')"><input type="file" id="foto-pintura" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-pintura')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-pintura"></div></div></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-pintura-antes">
+                <input type="file" id="foto-pintura-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-pintura-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-pintura-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-pintura-despues">
+                <input type="file" id="foto-pintura-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-pintura-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-pintura-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-pintura"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="pintura-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -606,7 +794,21 @@
             <div class="sub-cond" id="cond-soldadura">
               <div class="sub-label">Detalles — Soldadura</div>
               <div class="field"><label>Materiales usados</label><input type="text" id="sold-mat" placeholder="Tipo de soldadura, material..."></div>
-              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-area" onclick="triggerFoto('foto-soldadura')"><input type="file" id="foto-soldadura" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-soldadura')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-soldadura"></div></div></div>
+              <div class="field"><label>Evidencia — Antes y despues</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-soldadura-antes">
+                <input type="file" id="foto-soldadura-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-soldadura-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-soldadura-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-soldadura-despues">
+                <input type="file" id="foto-soldadura-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-soldadura-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-soldadura-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-soldadura"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="sold-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -658,7 +860,21 @@
             <div class="sub-cond" id="cond-cambio-llanta">
               <div class="sub-label">Detalles — Cambio de Llanta</div>
               <div class="field"><label>Marca de la llanta nueva</label><input type="text" id="llanta-marca" placeholder="Marca y medida"></div>
-              <div class="field"><label>Evidencia — Llanta nueva y usada</label><div class="foto-area" onclick="triggerFoto('foto-llanta')"><input type="file" id="foto-llanta" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-llanta')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-llanta"></div></div></div>
+              <div class="field"><label>Evidencia — Llanta nueva y usada</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-llanta-antes">
+                <input type="file" id="foto-llanta-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-llanta-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Llanta Usada</div>
+                <div class="foto-slot-count" id="cnt-foto-llanta-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-llanta-despues">
+                <input type="file" id="foto-llanta-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-llanta-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Llanta Nueva</div>
+                <div class="foto-slot-count" id="cnt-foto-llanta-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-llanta"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="llanta-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -675,7 +891,21 @@
             <div class="sub-cond" id="cond-rep-llanta">
               <div class="sub-label">Detalles — Reparacion</div>
               <div class="field"><label>Porcentaje de vida restante (%)</label><input type="number" id="llanta-vida" placeholder="Ej. 60" min="0" max="100"></div>
-              <div class="field"><label>Evidencia fotografica</label><div class="foto-area" onclick="triggerFoto('foto-rep-llanta')"><input type="file" id="foto-rep-llanta" accept="image/*" multiple onchange="previsualizarFotos(this,'prev-rep-llanta')"><div class="foto-area-label">Toca para subir foto</div><div class="foto-preview" id="prev-rep-llanta"></div></div></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rep-llanta-antes">
+                <input type="file" id="foto-rep-llanta-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-rep-llanta-antes')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-rep-llanta-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-rep-llanta-despues">
+                <input type="file" id="foto-rep-llanta-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-rep-llanta-despues')">
+                <div class="foto-slot-icon">&#128247;</div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-rep-llanta-despues">0 fotos</div>
+              </div>
+            </div>
+            <div class="foto-preview-row" id="prev-foto-rep-llanta"></div></div>
               <div class="field"><label>Observaciones</label><textarea id="rep-llanta-obs" placeholder="Observaciones..."></textarea></div>
             </div>
           </div>
@@ -872,22 +1102,40 @@ function agregarPieza(area) {
 }
 
 // ── Foto / compresión ─────────────────────────────────────
-function triggerFoto(inputId) {
-  var el = document.getElementById(inputId);
-  if (el) el.click();
-}
+function onFotoChange(input, inputId) {
+  // Actualizar contador y clase del slot
+  var slot  = document.getElementById('slot-' + inputId);
+  var cnt   = document.getElementById('cnt-' + inputId);
+  var n     = input.files.length;
+  if (slot) slot.classList.toggle('tiene-foto', n > 0);
+  if (cnt)  cnt.textContent = n + (n === 1 ? ' foto' : ' fotos');
 
-async function previsualizarFotos(input, prevId) {
-  var prev = document.getElementById(prevId);
+  // Mostrar previsualizacion combinada antes+después
+  // Buscar el div prev común (quita -antes o -despues del id)
+  var base = inputId.replace(/-antes$/, '').replace(/-despues$/, '');
+  var prev = document.getElementById('prev-' + base);
   if (!prev) return;
-  prev.innerHTML = '';
-  for (var i = 0; i < input.files.length; i++) {
-    var file = input.files[i];
-    var url  = URL.createObjectURL(file);
-    var img  = document.createElement('img');
-    img.src = url; img.className = 'foto-thumb';
-    prev.appendChild(img);
+
+  // Recolectar todas las fotos del par
+  var inputAntes   = document.getElementById(base + '-antes');
+  var inputDespues = document.getElementById(base + '-despues');
+  prev.innerHTML   = '';
+
+  function agregarThumbs(inp, label) {
+    if (!inp || !inp.files.length) return;
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;width:100%;margin-top:6px;';
+    lbl.textContent = label;
+    prev.appendChild(lbl);
+    for (var i = 0; i < inp.files.length; i++) {
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(inp.files[i]);
+      img.className = 'foto-thumb';
+      prev.appendChild(img);
+    }
   }
+  agregarThumbs(inputAntes,   'Antes');
+  agregarThumbs(inputDespues, 'Despues');
 }
 
 async function comprimirYConvertir(file) {
@@ -909,7 +1157,15 @@ function fileToBase64(file) {
   });
 }
 
-async function procesarFotos(inputId) {
+// Procesa un par de inputs (antes + despues) y devuelve { antes:[], despues:[] }
+async function procesarFotosPar(idBase) {
+  return {
+    antes:   await procesarInputFotos(idBase + '-antes'),
+    despues: await procesarInputFotos(idBase + '-despues')
+  };
+}
+
+async function procesarInputFotos(inputId) {
   var input = document.getElementById(inputId);
   if (!input || !input.files.length) return [];
   var results = [];
@@ -918,6 +1174,11 @@ async function procesarFotos(inputId) {
     results.push({ nombre: input.files[i].name, base64: b64 });
   }
   return results;
+}
+
+// Compatibilidad: procesarFotos ahora procesa un par
+async function procesarFotos(idBase) {
+  return await procesarFotosPar(idBase);
 }
 
 // ── Recolectar piezas ─────────────────────────────────────
@@ -932,7 +1193,7 @@ async function recolectarPiezas(area) {
       nombre:    (document.getElementById(id+'-nombre') || {}).value || '',
       material:  (document.getElementById(id+'-mat')    || {}).value || '',
       obs:       (document.getElementById(id+'-obs')    || {}).value || '',
-      fotos:     await procesarFotos(id+'-foto')
+      fotos:     await procesarFotosPar(id+'-foto')
     });
   }
   return result;
@@ -947,7 +1208,7 @@ async function recolectarFiltros() {
     if (val === 'si') {
       result[f.id] = {
         cambiado: true,
-        fotos: await procesarFotos('foto-' + f.id),
+        fotos: await procesarFotosPar('foto-' + f.id),
         obs:   (document.getElementById('obs-' + f.id) || {}).value || ''
       };
     } else {
@@ -992,16 +1253,16 @@ async function enviarReporte() {
           litrosAnt:   val('aceite-anterior'),
           nivelBajo:   estadoSino['nivel-bajo'],
           litrosNuevo: val('aceite-nuevo'),
-          fotos:       await procesarFotos('foto-aceite'),
+          fotos:       await procesarFotosPar('foto-aceite'),
           obs:         val('aceite-obs')
         } : null,
         frenos: estadoSino['frenos'] === 'si' ? {
-          fotos: await procesarFotos('foto-frenos'),
+          fotos: await procesarFotosPar('foto-frenos'),
           obs:   val('frenos-obs')
         } : null,
         servicio: estadoSino['servicio'] === 'si' ? {
           engrasado: estadoSino['engrasado'] === 'si' ? {
-            fotos: await procesarFotos('foto-engrasado'),
+            fotos: await procesarFotosPar('foto-engrasado'),
             obs:   val('engrasado-obs')
           } : null,
           aceite: estadoSino['srv-aceite'] === 'si' ? {
@@ -1010,7 +1271,7 @@ async function enviarReporte() {
             litrosAnt:   val('srv-aceite-anterior'),
             nivelBajo:   estadoSino['srv-nivel-bajo'],
             litrosNuevo: val('srv-aceite-nuevo'),
-            fotos:       await procesarFotos('foto-srv-aceite'),
+            fotos:       await procesarFotosPar('foto-srv-aceite'),
             obs:         val('srv-aceite-obs')
           } : null,
           filtros: await recolectarFiltros()
@@ -1019,7 +1280,7 @@ async function enviarReporte() {
           km:        val('afin-km'),
           piezas:    val('afin-piezas'),
           materiales:val('afin-materiales'),
-          fotos:     await procesarFotos('foto-afinacion'),
+          fotos:     await procesarFotosPar('foto-afinacion'),
           obs:       val('afin-obs')
         } : null,
         piezas:   await recolectarPiezas('tal'),
@@ -1029,11 +1290,18 @@ async function enviarReporte() {
       // ELÉCTRICO
       electrico: {
         activo: document.getElementById('body-electrico').classList.contains('open'),
-        cargaPilas: estadoSino['carga-pilas'] === 'si' ? {
-          voltAnt:   val('pilas-volt-ant'),
-          voltNuevo: val('pilas-volt-nuevo'),
-          fotos:     await procesarFotos('foto-pilas'),
-          obs:       val('pilas-obs')
+        cargaBat: estadoSino['carga-bat'] === 'si' ? {
+          voltAnt:   val('bat-carga-volt-ant'),
+          voltNuevo: val('bat-carga-volt-nuevo'),
+          fotos:     await procesarFotosPar('foto-bat-carga'),
+          obs:       val('bat-carga-obs')
+        } : null,
+        cambioBat: estadoSino['cambio-bat'] === 'si' ? {
+          voltAnt:   val('bat-cambio-volt-ant'),
+          voltNuevo: val('bat-cambio-volt-nuevo'),
+          motivo:    val('bat-cambio-motivo'),
+          fotos:     await procesarFotosPar('foto-bat-cambio'),
+          obs:       val('bat-cambio-obs')
         } : null,
         piezas:  await recolectarPiezas('elec'),
         obsGral: val('obs-electrico')
@@ -1044,23 +1312,23 @@ async function enviarReporte() {
         activo: document.getElementById('body-imagen').classList.contains('open'),
         calcas: estadoSino['calcas'] === 'si' ? {
           material: val('calcas-mat'),
-          fotos:    await procesarFotos('foto-calcas'),
+          fotos:    await procesarFotosPar('foto-calcas'),
           obs:      val('calcas-obs')
         } : null,
         asiento: estadoSino['asiento'] === 'si' ? {
           material: val('asiento-mat'),
-          fotos:    await procesarFotos('foto-asiento'),
+          fotos:    await procesarFotosPar('foto-asiento'),
           obs:      val('asiento-obs')
         } : null,
         pintura: estadoSino['pintura'] === 'si' ? {
           area:     val('pintura-area'),
           material: val('pintura-mat'),
-          fotos:    await procesarFotos('foto-pintura'),
+          fotos:    await procesarFotosPar('foto-pintura'),
           obs:      val('pintura-obs')
         } : null,
         soldadura: estadoSino['soldadura'] === 'si' ? {
           material: val('sold-mat'),
-          fotos:    await procesarFotos('foto-soldadura'),
+          fotos:    await procesarFotosPar('foto-soldadura'),
           obs:      val('sold-obs')
         } : null,
         piezas:  await recolectarPiezas('img'),
@@ -1072,12 +1340,12 @@ async function enviarReporte() {
         activo: document.getElementById('body-llantas').classList.contains('open'),
         cambio: estadoSino['cambio-llanta'] === 'si' ? {
           marca: val('llanta-marca'),
-          fotos: await procesarFotos('foto-llanta'),
+          fotos: await procesarFotosPar('foto-llanta'),
           obs:   val('llanta-obs')
         } : null,
         reparacion: estadoSino['rep-llanta'] === 'si' ? {
           vidaRestante: val('llanta-vida'),
-          fotos:        await procesarFotos('foto-rep-llanta'),
+          fotos:        await procesarFotosPar('foto-rep-llanta'),
           obs:          val('rep-llanta-obs')
         } : null,
         obsGral: val('obs-llantas')
