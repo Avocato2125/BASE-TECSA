@@ -199,7 +199,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0BYDTveQ3TLlYFO-Bc3Zcb1U3OmcuRi1WT6ZwXhLmibLPMmcRYJBLbQnt7WXa73YStQ/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyEsFd3V8EzRYAYx1Xo9fmlz5ycm0ZYzq5eIAS5zgwcIjPakITl_sqF6i8OSuK7pu-Bww/exec';
 var API_URL = window.location.origin;
 var datosUnidad = null;
 
@@ -429,8 +429,12 @@ async function enviarAuditoria() {
   };
 
   try {
-    var url = APPS_SCRIPT_URL + '?datos=' + encodeURIComponent(JSON.stringify(datos));
-    var res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    var res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(datos),
+      redirect: 'follow'
+    });
     var result = await res.json();
 
     if (result.ok) {
