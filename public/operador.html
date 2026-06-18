@@ -399,7 +399,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWaRWlH-EGARbbOpI-UwngiZeAusfmWVR1ftqsY9MAz10or61BwuFu5ts_gEYqgdaZWw/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwt_5nzVetqdV8O8sL4-b2Xf29B9l_EF21Aeia0BUyeYmMy6VBPDPwggy2ox3mhrWK1_Q/exec';
 var API_URL = window.location.origin;
 
 var motivoSeleccionado = null;
@@ -502,24 +502,20 @@ async function guardar() {
   document.getElementById('errorMsg').style.display = 'none';
 
   try {
-    var res  = await fetch(APPS_SCRIPT_URL, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(datos)
-    });
-    // no-cors no devuelve body, asumimos ok
-    document.getElementById('formContent').style.display = 'none';
-    document.getElementById('successPanel').style.display = 'block';
-    document.getElementById('folioResult').textContent = '...';
-    // Obtener folio real consultando la API del dashboard
-    try {
-      var r2   = await fetch(API_URL + '/api/unidades');
-      var data = await r2.json();
-      if (data.ok && data.entradas.length) {
-        var ultima = data.entradas[data.entradas.length - 1];
-        document.getElementById('folioResult').textContent = ultima.folio;
-      }
-    } catch(e2) {}
+    // Usar GET con parametros para poder leer la respuesta (evita problema CORS de POST)
+    var url = APPS_SCRIPT_URL + '?datos=' + encodeURIComponent(JSON.stringify(datos));
+    var res  = await fetch(url, { method:'GET', redirect:'follow' });
+    var result = await res.json();
+
+    if (result.ok) {
+      document.getElementById('formContent').style.display = 'none';
+      document.getElementById('successPanel').style.display = 'block';
+      document.getElementById('folioResult').textContent = result.folio || '---';
+    } else {
+      document.getElementById('errorMsg').textContent = 'Error: ' + (result.error || 'desconocido');
+      document.getElementById('errorMsg').style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Registrar Entrada';
+    }
   } catch(e) {
     document.getElementById('errorMsg').textContent = 'Error de conexion: ' + e.message;
     document.getElementById('errorMsg').style.display = 'block';
