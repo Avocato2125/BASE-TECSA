@@ -271,7 +271,7 @@
         <div class="motivo-grid">
           <div class="motivo-btn" id="btn-taller"  onclick="seleccionarMotivo('Taller')"><div class="btn-label">Taller</div></div>
           <div class="motivo-btn" id="btn-camaras" onclick="seleccionarMotivo('Camaras')"><div class="btn-label">Camaras / Display</div></div>
-          <div class="motivo-btn" id="btn-implant" onclick="seleccionarMotivo('Implant')"><div class="btn-label">Implant</div></div>
+          <div class="motivo-btn" id="btn-inplant" onclick="seleccionarMotivo('Inplant')"><div class="btn-label">Inplant</div></div>
           <div class="motivo-btn" id="btn-otro"    onclick="seleccionarMotivo('Otro')"><div class="btn-label">Otro</div></div>
         </div>
       </div>
@@ -333,16 +333,16 @@
         </div>
       </div>
 
-      <!-- IMPLANT -->
-      <div class="seccion-extra" id="secImplant">
+      <!-- INPLANT -->
+      <div class="seccion-extra" id="secInplant">
         <div class="seccion-divider">
           <div class="seccion-divider-line"></div>
-          <div class="seccion-divider-label">Implant</div>
+          <div class="seccion-divider-label">Inplant</div>
           <div class="seccion-divider-line"></div>
         </div>
         <div class="field">
           <label>Planta</label>
-          <select id="plantaImplant" onchange="validar()">
+          <select id="plantaInplant" onchange="validar()">
             <option value="">— Selecciona planta —</option>
             <option>DEACERO</option><option>GERBER</option><option>LEOCH BATTERY</option>
             <option>PHILLIPS</option><option>TI-AUTOMOTIVE</option><option>SKYJACK</option>
@@ -351,7 +351,7 @@
         </div>
         <div class="field" style="margin-bottom:0;">
           <label>Motivo</label>
-          <textarea id="motivoImplant" placeholder="Describe el motivo del implant..." oninput="validar()"></textarea>
+          <textarea id="motivoInplant" placeholder="Describe el motivo del inplant..." oninput="validar()"></textarea>
         </div>
       </div>
 
@@ -406,7 +406,7 @@ var motivoSeleccionado = null;
 var areaSeleccionada   = null;
 
 // Todas las secciones disponibles
-var SECCIONES = ['taller','camaras','implant','otro'];
+var SECCIONES = ['taller','camaras','inplant','otro'];
 
 function tick() {
   var ahora = new Date();
@@ -446,9 +446,9 @@ function resetCampos(excepto) {
     document.getElementById('plantaCamaras').value = '';
     document.getElementById('reporteFallaCamaras').value = '';
   }
-  if (excepto !== 'Implant') {
-    document.getElementById('plantaImplant').value = '';
-    document.getElementById('motivoImplant').value = '';
+  if (excepto !== 'Inplant') {
+    document.getElementById('plantaInplant').value = '';
+    document.getElementById('motivoInplant').value = '';
   }
   if (excepto !== 'Otro') {
     document.getElementById('motivoOtro').value = '';
@@ -470,8 +470,8 @@ function validar() {
     ok = ok && document.getElementById('plantaTaller').value && areaSeleccionada && document.getElementById('reporteFallaTaller').value.trim();
   } else if (motivoSeleccionado === 'Camaras') {
     ok = ok && document.getElementById('plantaCamaras').value && document.getElementById('reporteFallaCamaras').value.trim();
-  } else if (motivoSeleccionado === 'Implant') {
-    ok = ok && document.getElementById('plantaImplant').value && document.getElementById('motivoImplant').value.trim();
+  } else if (motivoSeleccionado === 'Inplant') {
+    ok = ok && document.getElementById('plantaInplant').value && document.getElementById('motivoInplant').value.trim();
   }
   document.getElementById('btnGuardar').disabled = !ok;
 }
@@ -488,10 +488,10 @@ async function guardar() {
   } else if (motivoSeleccionado === 'Camaras') {
     datos.planta       = document.getElementById('plantaCamaras').value;
     datos.reporteFalla = document.getElementById('reporteFallaCamaras').value.trim();
-  } else if (motivoSeleccionado === 'Implant') {
-    datos.planta  = document.getElementById('plantaImplant').value;
-    datos.motivo  = 'Implant';
-    datos.detalle = document.getElementById('motivoImplant').value.trim();
+  } else if (motivoSeleccionado === 'Inplant') {
+    datos.planta  = document.getElementById('plantaInplant').value;
+    datos.motivo  = 'Inplant';
+    datos.detalle = document.getElementById('motivoInplant').value.trim();
   } else {
     var det = document.getElementById('motivoOtro').value.trim();
     if (det) datos.detalle = det;
