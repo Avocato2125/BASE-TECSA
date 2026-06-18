@@ -217,8 +217,6 @@ window.addEventListener('load', function() {
   tick();
   setInterval(tick, 1000);
   generarPuntos();
-  initFirma('firmaAuditor');
-  initFirma('firmaOperador');
   cargarUnidadesImplant();
 });
 
@@ -282,9 +280,13 @@ function actualizarObs(id, val) { puntosEstado[id].obs = val; }
 var firmaCtx = {};
 var firmaDrawing = {};
 
+var firmaInicializada = {};
+
 function initFirma(canvasId) {
+  if (firmaInicializada[canvasId]) return; // evitar duplicar listeners
   var canvas = document.getElementById(canvasId);
   var rect = canvas.getBoundingClientRect();
+  if (rect.width === 0) return; // aun no visible, no inicializar todavia
   canvas.width = rect.width * 2;
   canvas.height = rect.height * 2;
   var ctx = canvas.getContext('2d');
@@ -295,6 +297,7 @@ function initFirma(canvasId) {
   ctx.lineJoin = 'round';
   firmaCtx[canvasId] = ctx;
   firmaDrawing[canvasId] = false;
+  firmaInicializada[canvasId] = true;
 
   function pos(e) {
     var r = canvas.getBoundingClientRect();
@@ -323,6 +326,7 @@ function limpiarFirma(canvasId) {
 
 function firmaTieneContenido(canvasId) {
   var canvas = document.getElementById(canvasId);
+  if (!canvas.width || !canvas.height) return false;
   var ctx = canvas.getContext('2d');
   var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   for (var i = 3; i < data.length; i += 4) { if (data[i] > 0) return true; }
@@ -380,6 +384,13 @@ function seleccionarFolio() {
   document.getElementById('unidadBanner').style.display = 'flex';
   document.getElementById('formContent').style.display = 'block';
   document.getElementById('operadorNombreAud').value = u.operador || '';
+
+  // Inicializar canvas de firma AHORA que el formulario es visible
+  // (con un pequeño delay para que el layout termine de calcular el tamaño real)
+  setTimeout(function() {
+    initFirma('firmaAuditor');
+    initFirma('firmaOperador');
+  }, 50);
 }
 
 function extraerPlanta(motivo) {
