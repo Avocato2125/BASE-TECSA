@@ -347,7 +347,7 @@ async function cargarUnidadesImplant() {
     if (!data.ok) throw new Error(data.error);
 
     var implant = data.entradas.filter(function(u) {
-      return u.motivo && u.motivo.indexOf('Implant') === 0;
+      return u.motivo && u.motivo.indexOf('Inplant') === 0;
     });
 
     select.innerHTML = '<option value="">— Selecciona una unidad —</option>';
@@ -455,4 +455,3 @@ async function enviarAuditoria() {
 </script>
 </body>
 </html>
-u
