@@ -154,7 +154,7 @@
   <div class="form-body">
     <div id="buscarSection">
       <div class="field">
-        <label>Selecciona Unidad Implant</label>
+        <label>Selecciona Unidad Inplant</label>
         <select id="folioSelect" onchange="seleccionarFolio()">
           <option value="">Cargando unidades...</option>
         </select>
@@ -217,7 +217,7 @@ window.addEventListener('load', function() {
   tick();
   setInterval(tick, 1000);
   generarPuntos();
-  cargarUnidadesImplant();
+  cargarUnidadesInplant();
 });
 
 function tick() {
@@ -338,7 +338,7 @@ function firmaToBase64(canvasId) {
   return canvas.toDataURL('image/png').split(',')[1];
 }
 
-async function cargarUnidadesImplant() {
+async function cargarUnidadesInplant() {
   var select = document.getElementById('folioSelect');
   var errEl = document.getElementById('buscarError');
   try {
@@ -346,16 +346,16 @@ async function cargarUnidadesImplant() {
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
 
-    var implant = data.entradas.filter(function(u) {
+    var inplant = data.entradas.filter(function(u) {
       return u.motivo && u.motivo.indexOf('Inplant') === 0;
     });
 
     select.innerHTML = '<option value="">— Selecciona una unidad —</option>';
-    if (!implant.length) {
-      select.innerHTML = '<option value="">No hay unidades Implant activas</option>';
+    if (!inplant.length) {
+      select.innerHTML = '<option value="">No hay unidades Inplant activas</option>';
       return;
     }
-    implant.forEach(function(u) {
+    inplant.forEach(function(u) {
       var opt = document.createElement('option');
       opt.value = JSON.stringify(u);
       opt.textContent = u.unidad + ' — ' + u.folio + ' (' + u.operador + ')';
