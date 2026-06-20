@@ -110,6 +110,12 @@
   }
   .btn-submit:hover:not(:disabled) { background:#f0c45a; transform:translateY(-1px); }
   .btn-submit:disabled { opacity:0.4; cursor:not-allowed; }
+  .btn-nueva {
+    width:100%; background:transparent; border:1px solid var(--border); border-radius:var(--radius);
+    padding:12px; color:var(--muted); font-family:'Inter',sans-serif; font-size:14px;
+    cursor:pointer; transition:all 0.18s; margin-top:16px;
+  }
+  .btn-nueva:hover { border-color:var(--accent); color:var(--accent); }
   .success-panel { display:none; text-align:center; padding:16px 0 8px; }
   .success-check {
     width:56px; height:56px; background:rgba(75,232,138,0.12); border:2px solid rgba(75,232,138,0.4);
@@ -194,12 +200,13 @@
       <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div class="success-title">Auditoria Generada</div>
       <div class="success-sub">El PDF ha sido guardado correctamente y la unidad fue dada de baja.</div>
+      <button class="btn-nueva" onclick="nuevaAuditoria()">Nueva Auditoria</button>
     </div>
   </div>
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgJgnXce2970noXKbEYLF_KEDJOzEZojrCyfj5M0RRwpuATEg2skGqcxTTvwh8OVi_sw/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7BqwqMRZBAiWCHLbNxsq4jYxovmLaRWmBjx4dPckoFSS9Hvl2a8vIx6mJfpIB8tESrA/exec';
 var API_URL = window.location.origin;
 var datosUnidad = null;
 
@@ -217,7 +224,7 @@ window.addEventListener('load', function() {
   tick();
   setInterval(tick, 1000);
   generarPuntos();
-  cargarUnidadesInplant();
+  cargarUnidadesImplant();
 });
 
 function tick() {
@@ -279,7 +286,6 @@ function actualizarObs(id, val) { puntosEstado[id].obs = val; }
 
 var firmaCtx = {};
 var firmaDrawing = {};
-
 var firmaInicializada = {};
 
 function initFirma(canvasId) {
@@ -321,6 +327,7 @@ function initFirma(canvasId) {
 function limpiarFirma(canvasId) {
   var canvas = document.getElementById(canvasId);
   var ctx = firmaCtx[canvasId];
+  if (!ctx) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -338,9 +345,10 @@ function firmaToBase64(canvasId) {
   return canvas.toDataURL('image/png').split(',')[1];
 }
 
-async function cargarUnidadesInplant() {
+async function cargarUnidadesImplant() {
   var select = document.getElementById('folioSelect');
   var errEl = document.getElementById('buscarError');
+  select.innerHTML = '<option value="">Cargando unidades...</option>';
   try {
     var res = await fetch(API_URL + '/api/unidades');
     var data = await res.json();
@@ -367,6 +375,22 @@ async function cargarUnidadesInplant() {
   }
 }
 
+// Resetea por completo el formulario (puntos, firmas, campos de texto)
+// Se llama cada vez que se selecciona una unidad nueva, para que datos
+// de una unidad anterior nunca queden mezclados con la siguiente.
+function resetFormularioCompleto() {
+  document.getElementById('auditorNombre').value = '';
+  document.getElementById('kilometraje').value = '';
+  document.getElementById('operadorNombreAud').value = '';
+  limpiarFirma('firmaAuditor');
+  limpiarFirma('firmaOperador');
+  generarPuntos();
+  var btn = document.getElementById('btnEnviar');
+  btn.disabled = false;
+  btn.textContent = 'Generar Auditoria';
+  document.getElementById('errorMsg').style.display = 'none';
+}
+
 function seleccionarFolio() {
   var select = document.getElementById('folioSelect');
   if (!select.value) {
@@ -377,6 +401,10 @@ function seleccionarFolio() {
   }
   var u = JSON.parse(select.value);
   datosUnidad = u;
+
+  // Limpiar cualquier dato dejado por una unidad seleccionada previamente
+  resetFormularioCompleto();
+
   document.getElementById('bannerUnidad').textContent = u.unidad;
   document.getElementById('bannerOperador').textContent = u.operador;
   document.getElementById('bannerPlanta').textContent = extraerPlanta(u.motivo) || '—';
@@ -397,6 +425,19 @@ function extraerPlanta(motivo) {
   if (!motivo) return '';
   var partes = motivo.split(' — ');
   return partes.length > 1 ? partes[1] : '';
+}
+
+// Vuelve a mostrar el selector para hacer otra auditoria,
+// con la lista de unidades refrescada (la recien auditada ya no aparece).
+function nuevaAuditoria() {
+  datosUnidad = null;
+  document.getElementById('successPanel').style.display = 'none';
+  document.getElementById('unidadBanner').style.display = 'none';
+  document.getElementById('formContent').style.display = 'none';
+  document.getElementById('buscarSection').style.display = 'block';
+  document.getElementById('folioSelect').value = '';
+  resetFormularioCompleto();
+  cargarUnidadesImplant();
 }
 
 async function enviarAuditoria() {
@@ -438,6 +479,11 @@ async function enviarAuditoria() {
     var result = await res.json();
 
     if (result.ok) {
+      // Una vez enviada, esta unidad queda BAJA en el backend.
+      // Bloqueamos toda interaccion previa con el formulario y el selector
+      // para que no se pueda volver a enviar la misma auditoria.
+      datosUnidad = null;
+      document.getElementById('buscarSection').style.display = 'none';
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('unidadBanner').style.display = 'none';
       document.getElementById('successPanel').style.display = 'block';
