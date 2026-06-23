@@ -399,7 +399,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7ncQemB8Gu6QfzDkanNM1k1W5nVpfVxNTOPqs5AoezCm336HeoalMinunFqCjSXvucA/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLtJbbnFMmouip67Uh0fuivwaZmmBEnmVSmArD9gN-TpbAZLEESI5XIG-panF3lIPqxg/exec';
 var API_URL = window.location.origin;
 
 var motivoSeleccionado = null;
@@ -511,6 +511,12 @@ async function guardar() {
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('successPanel').style.display = 'block';
       document.getElementById('folioResult').textContent = result.folio || '---';
+
+      // --- NUEVO: Recargar la página después de 3 segundos para refrescar listas ---
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+
     } else {
       document.getElementById('errorMsg').textContent = 'Error: ' + (result.error || 'desconocido');
       document.getElementById('errorMsg').style.display = 'block';
@@ -601,6 +607,12 @@ async function confirmarSalida() {
       toast.textContent = 'Salida registrada';
       document.body.appendChild(toast);
       setTimeout(function(){ toast.remove(); }, 3000);
+
+      // --- NUEVO: Recargar la página después de 3 segundos ---
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+
     } else {
       errEl.textContent = data.error || 'Error.';
       btn.disabled = false; btn.textContent = 'Confirmar Salida';
