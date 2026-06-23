@@ -206,7 +206,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVX7uiJ8uIfnfmuhbDFZP9ogW4-OP1CXNqiIBD20j8QM4q0bh27edntNKr3rqgjVcjkg/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMrQxBhwM4ZLfYiwoF6_6lKkjnnQuxovW-CAsNCMlCJ3yxnXYpjaGaXh21cdgGrN9_nA/exec';
 var API_URL = window.location.origin;
 var datosUnidad = null;
 
@@ -480,13 +480,18 @@ async function enviarAuditoria() {
 
     if (result.ok) {
       // Una vez enviada, esta unidad queda BAJA en el backend.
-      // Bloqueamos toda interaccion previa con el formulario y el selector
-      // para que no se pueda volver a enviar la misma auditoria.
       datosUnidad = null;
       document.getElementById('buscarSection').style.display = 'none';
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('unidadBanner').style.display = 'none';
       document.getElementById('successPanel').style.display = 'block';
+
+      // --- NUEVO: Forzar recarga para limpiar los Canvas (Firmas) y campos ---
+      setTimeout(function() {
+        window.location.reload();
+      }, 3000); 
+      // ------------------------------------------------------------------------
+
     } else {
       errEl.textContent = 'Error: ' + (result.error || 'desconocido');
       errEl.style.display = 'block';
