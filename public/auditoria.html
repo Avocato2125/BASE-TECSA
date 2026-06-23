@@ -206,7 +206,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMrQxBhwM4ZLfYiwoF6_6lKkjnnQuxovW-CAsNCMlCJ3yxnXYpjaGaXh21cdgGrN9_nA/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE8arD_r_NZe9uqq-cW7mf8HN6hDlRT4yoXaRgb-brm9zGHISBRc2B2i5pYg5thADhGg/exec';
 var API_URL = window.location.origin;
 var datosUnidad = null;
 
@@ -342,7 +342,21 @@ function firmaTieneContenido(canvasId) {
 
 function firmaToBase64(canvasId) {
   var canvas = document.getElementById(canvasId);
-  return canvas.toDataURL('image/png').split(',')[1];
+  // Crear un canvas temporal con fondo blanco y trazos en negro
+  var tmp = document.createElement('canvas');
+  tmp.width  = canvas.width;
+  tmp.height = canvas.height;
+  var ctx = tmp.getContext('2d');
+  // Fondo blanco
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, tmp.width, tmp.height);
+  // Redibujar la firma original pero multiplicar color a negro
+  // usando compositing: dibujar encima con color negro donde hay trazo
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.drawImage(canvas, 0, 0);
+  // Restaurar y dibujar el resultado final
+  ctx.globalCompositeOperation = 'source-over';
+  return tmp.toDataURL('image/png').split(',')[1];
 }
 
 async function cargarUnidadesImplant() {
@@ -480,18 +494,18 @@ async function enviarAuditoria() {
 
     if (result.ok) {
       // Una vez enviada, esta unidad queda BAJA en el backend.
+      // Bloqueamos toda interaccion previa con el formulario y el selector
+      // para que no se pueda volver a enviar la misma auditoria.
       datosUnidad = null;
       document.getElementById('buscarSection').style.display = 'none';
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('unidadBanner').style.display = 'none';
       document.getElementById('successPanel').style.display = 'block';
 
-      // --- NUEVO: Forzar recarga para limpiar los Canvas (Firmas) y campos ---
+      // Recargar la pagina tras 3 segundos para limpiar firmas y estado
       setTimeout(function() {
         window.location.reload();
-      }, 3000); 
-      // ------------------------------------------------------------------------
-
+      }, 3000);
     } else {
       errEl.textContent = 'Error: ' + (result.error || 'desconocido');
       errEl.style.display = 'block';
