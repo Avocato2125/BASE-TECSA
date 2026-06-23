@@ -1119,7 +1119,12 @@ function onFotoChange(input, inputId) {
 }
 
 async function comprimirYConvertir(file) {
-  var options = { maxSizeMB: 0.2, maxWidthOrHeight: 1280, useWebWorker: true };
+  const options = {
+    maxSizeMB: 0.5, // 0.5 MB es suficiente para que se vea bien en Google Sheets
+    maxWidthOrHeight: 1200, // No hace falta más de 1200px para un reporte de taller
+    useWebWorker: true, // ¡Asegúrate de que esto esté en true!
+    initialQuality: 0.6 // Esto es clave: si empiezas en 0.6, el procesador trabaja mucho menos
+  };
   try {
     var compressed = await imageCompression(file, options);
     return await fileToBase64(compressed);
