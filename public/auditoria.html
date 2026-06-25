@@ -555,20 +555,37 @@ async function enviarAuditoria() {
     return;
   }
 
-  // 4. Validar puntos "No Cumple": obligar a observación o foto como evidencia
+  // 4. Validar que TODOS los puntos tengan respuesta (cumple o nocumple)
   var ids = Object.keys(puntosEstado);
   for (var i = 0; i < ids.length; i++) {
     var p = puntosEstado[ids[i]];
-    if (p.valor === 'nocumple') {
-      var tieneObs   = p.obs && p.obs.trim() !== '';
-      var tieneFotos = p.fotos && p.fotos.length > 0;
-      if (!tieneObs && !tieneFotos) {
-        errEl.textContent = '"' + p.nombre + '" no cumple — agrega una observacion o foto como evidencia.';
-        errEl.style.display = 'block';
-        // Scroll suave al mensaje de error
-        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
+    if (!p.valor) {
+      errEl.textContent = 'Falta responder el punto: "' + p.nombre + '". Marca Cumple o No Cumple.';
+      errEl.style.display = 'block';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+
+  // 5. Validar que TODOS los puntos tengan al menos una foto
+  for (var j = 0; j < ids.length; j++) {
+    var p2 = puntosEstado[ids[j]];
+    if (!p2.fotos || p2.fotos.length === 0) {
+      errEl.textContent = 'Falta foto en: "' + p2.nombre + '". Sube al menos una imagen por punto.';
+      errEl.style.display = 'block';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+
+  // 6. Validar puntos "No Cumple": obligar ademas a observación escrita
+  for (var k = 0; k < ids.length; k++) {
+    var p3 = puntosEstado[ids[k]];
+    if (p3.valor === 'nocumple' && (!p3.obs || p3.obs.trim() === '')) {
+      errEl.textContent = '"' + p3.nombre + '" no cumple — agrega una observacion escrita.';
+      errEl.style.display = 'block';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
   }
 
