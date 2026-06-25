@@ -89,6 +89,16 @@
   .check-btn.nocumple:hover { border-color:var(--red); color:var(--red); }
   .check-btn.cumple.selected { background:rgba(75,232,138,0.15); border-color:var(--green); color:var(--green); }
   .check-btn.nocumple.selected { background:rgba(232,75,75,0.15); border-color:var(--red); color:var(--red); }
+  /* Boton de foto por punto */
+  .foto-btn {
+    height:32px; min-width:38px; padding:0 8px; border-radius:7px;
+    border:1px solid var(--border); background:rgba(255,255,255,0.02);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    gap:4px; font-size:11px; color:var(--muted); transition:all 0.15s; white-space:nowrap;
+  }
+  .foto-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+  .foto-btn.tiene-fotos { border-color:var(--accent2); color:var(--accent2); background:rgba(75,142,232,0.1); }
+  .foto-btn svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; flex-shrink:0; }
   .obs-input {
     width:100%; margin-top:6px; display:none; background:rgba(232,75,75,0.04);
     border:1px solid rgba(232,75,75,0.2); border-radius:6px; padding:7px 10px;
@@ -206,7 +216,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMRJMxioljfqBy_b3U-i1vLStVpW1iWjyGCGp_cP_PLFzsdiqKZA-hwAx08ePfvsutkw/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHonme6UHPWH7bUY5mTN-mM03G_IKMPD153eMDPkI_a5OBgdpQDbovUqv9etNQyME7Og/exec';
 var API_URL = window.location.origin;
 var datosUnidad = null;
 
@@ -242,19 +252,23 @@ function generarPuntos() {
     html += '<div class="seccion-title">' + sec.titulo + '</div>';
     sec.puntos.forEach(function(p, pi) {
       var id = 's' + si + 'p' + pi;
-      puntosEstado[id] = { nombre: p, valor: null, obs: '' };
+      puntosEstado[id] = { nombre: p, valor: null, obs: '', fotos: [] };
       html += '<div class="punto-row">'
         + '<div class="punto-nombre">' + p + '</div>'
         + '<div class="check-pair">'
         +   '<div class="check-btn cumple" data-id="' + id + '" data-val="cumple">&#10003;</div>'
         +   '<div class="check-btn nocumple" data-id="' + id + '" data-val="nocumple">&#10007;</div>'
+        +   '<button type="button" class="foto-btn" id="fotobtn-' + id + '" data-id="' + id + '">'
+        +     '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="15" rx="2"/><circle cx="12" cy="13" r="3"/><path d="M8 6V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>'
+        +     '<span id="fotocount-' + id + '">0</span>'
+        +   '</button>'
         + '</div></div>'
-        + '<input type="text" class="obs-input" id="obs-' + id + '" data-id="' + id + '" placeholder="Observacion...">';
+        + '<input type="text" class="obs-input" id="obs-' + id + '" data-id="' + id + '" placeholder="Observacion...">'
+        + '<input type="file" accept="image/*" multiple class="foto-file-input" id="foto-' + id + '" data-id="' + id + '" style="display:none">';
     });
   });
   cont.innerHTML = html;
 
-  // Adjuntar listeners despues de insertar HTML (evita problemas de escape de comillas)
   cont.querySelectorAll('.check-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       marcarPunto(btn.getAttribute('data-id'), btn.getAttribute('data-val'), btn);
@@ -265,6 +279,62 @@ function generarPuntos() {
       actualizarObs(inp.getAttribute('data-id'), inp.value);
     });
   });
+  // Boton de foto abre el file input
+  cont.querySelectorAll('.foto-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.getAttribute('data-id');
+      document.getElementById('foto-' + id).click();
+    });
+  });
+  // Al seleccionar archivos: comprimir y guardar en estado
+  cont.querySelectorAll('.foto-file-input').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      var id = inp.getAttribute('data-id');
+      procesarFotosPunto(id, inp.files);
+    });
+  });
+}
+
+function procesarFotosPunto(id, files) {
+  if (!files || !files.length) return;
+  var MAX_KB = 200;
+  Array.from(files).forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var MAX_DIM = 1200;
+        var w = img.width, h = img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+          else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        // Reducir calidad hasta que quepa en MAX_KB
+        var q = 0.85;
+        var dataUrl;
+        do {
+          dataUrl = canvas.toDataURL('image/jpeg', q);
+          q -= 0.1;
+        } while (dataUrl.length > MAX_KB * 1024 * 1.37 && q > 0.2);
+        var base64 = dataUrl.split(',')[1];
+        puntosEstado[id].fotos.push({ nombre: file.name, base64: base64 });
+        actualizarContadorFoto(id);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function actualizarContadorFoto(id) {
+  var n = puntosEstado[id].fotos.length;
+  document.getElementById('fotocount-' + id).textContent = n;
+  var btn = document.getElementById('fotobtn-' + id);
+  if (n > 0) btn.classList.add('tiene-fotos');
+  else btn.classList.remove('tiene-fotos');
 }
 
 function marcarPunto(id, valor, el) {
@@ -342,29 +412,24 @@ function firmaTieneContenido(canvasId) {
 
 function firmaToBase64(canvasId) {
   var canvas = document.getElementById(canvasId);
-  // Crear canvas temporal con fondo blanco y trazos en negro
   var tmp = document.createElement('canvas');
   tmp.width  = canvas.width;
   tmp.height = canvas.height;
-  var ctx = tmp.getContext('2d');
-  // Fondo blanco
+  // willReadFrequently evita la advertencia de rendimiento en getImageData
+  var ctx = tmp.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, tmp.width, tmp.height);
-  // Leer pixels del canvas original y redibujar en negro
-  // donde haya trazo (alpha > 0) lo pintamos negro
-  var srcCtx  = canvas.getContext('2d');
+  var srcCtx  = canvas.getContext('2d', { willReadFrequently: true });
   var imgData = srcCtx.getImageData(0, 0, canvas.width, canvas.height);
   var dstData = ctx.getImageData(0, 0, tmp.width, tmp.height);
   for (var i = 0; i < imgData.data.length; i += 4) {
     var alpha = imgData.data[i + 3];
     if (alpha > 10) {
-      // Hay trazo: pintar negro con el mismo alpha
-      dstData.data[i]     = 0;   // R
-      dstData.data[i + 1] = 0;   // G
-      dstData.data[i + 2] = 0;   // B
+      dstData.data[i]     = 0;
+      dstData.data[i + 1] = 0;
+      dstData.data[i + 2] = 0;
       dstData.data[i + 3] = alpha;
     }
-    // Si alpha == 0 queda blanco (ya rellenamos el fondo)
   }
   ctx.putImageData(dstData, 0, 0);
   return tmp.toDataURL('image/png').split(',')[1];
@@ -478,7 +543,10 @@ async function enviarAuditoria() {
 
   btn.disabled = true; btn.textContent = 'Generando...';
 
-  var puntos = Object.keys(puntosEstado).map(function(id) { return puntosEstado[id]; });
+  var puntos = Object.keys(puntosEstado).map(function(id) {
+    var p = puntosEstado[id];
+    return { nombre: p.nombre, valor: p.valor, obs: p.obs, fotos: p.fotos || [] };
+  });
 
   var datos = {
     folio: datosUnidad.folio,
