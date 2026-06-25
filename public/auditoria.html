@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Auditoria General — TECSA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
 
@@ -295,38 +296,35 @@ function generarPuntos() {
   });
 }
 
-function procesarFotosPunto(id, files) {
+async function procesarFotosPunto(id, files) {
   if (!files || !files.length) return;
-  var MAX_KB = 200;
-  Array.from(files).forEach(function(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        var MAX_DIM = 1200;
-        var w = img.width, h = img.height;
-        if (w > MAX_DIM || h > MAX_DIM) {
-          if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
-          else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
-        }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        // Reducir calidad hasta que quepa en MAX_KB
-        var q = 0.85;
-        var dataUrl;
-        do {
-          dataUrl = canvas.toDataURL('image/jpeg', q);
-          q -= 0.1;
-        } while (dataUrl.length > MAX_KB * 1024 * 1.37 && q > 0.2);
-        var base64 = dataUrl.split(',')[1];
-        puntosEstado[id].fotos.push({ nombre: file.name, base64: base64 });
-        actualizarContadorFoto(id);
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
+
+  var btn = document.getElementById('fotobtn-' + id);
+  var countEl = document.getElementById('fotocount-' + id);
+  btn.classList.add('tiene-fotos');
+  countEl.textContent = 'Comprimiendo...';
+
+  var opciones = {
+    maxSizeMB: 0.3,
+    maxWidthOrHeight: 1024,
+    useWebWorker: true,
+    initialQuality: 0.7
+  };
+
+  try {
+    for (var i = 0; i < files.length; i++) {
+      var archivoComprimido = await imageCompression(files[i], opciones);
+      var base64DataUrl = await imageCompression.getDataUrlFromFile(archivoComprimido);
+      puntosEstado[id].fotos.push({
+        nombre: files[i].name,
+        base64: base64DataUrl.split(',')[1]
+      });
+    }
+    actualizarContadorFoto(id);
+  } catch(err) {
+    console.error('Error al comprimir foto:', err);
+    countEl.textContent = 'Error';
+  }
 }
 
 function actualizarContadorFoto(id) {
@@ -531,35 +529,70 @@ function nuevaAuditoria() {
 }
 
 async function enviarAuditoria() {
-  var btn = document.getElementById('btnEnviar');
+  var btn   = document.getElementById('btnEnviar');
   var errEl = document.getElementById('errorMsg');
   errEl.style.display = 'none';
 
-  if (!datosUnidad) { errEl.textContent = 'Selecciona una unidad.'; errEl.style.display = 'block'; return; }
+  // 1. Validar que seleccionó una unidad
+  if (!datosUnidad) {
+    errEl.textContent = 'Por favor selecciona una unidad.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // 2. Validar nombre del auditor
   var auditor = document.getElementById('auditorNombre').value.trim();
-  if (!auditor) { errEl.textContent = 'Ingresa el nombre del auditor.'; errEl.style.display = 'block'; return; }
-  if (!firmaTieneContenido('firmaAuditor')) { errEl.textContent = 'Falta la firma del auditor.'; errEl.style.display = 'block'; return; }
-  if (!firmaTieneContenido('firmaOperador')) { errEl.textContent = 'Falta la firma del operador.'; errEl.style.display = 'block'; return; }
+  if (!auditor) {
+    errEl.textContent = 'Ingresa el nombre del auditor.';
+    errEl.style.display = 'block';
+    return;
+  }
 
-  btn.disabled = true; btn.textContent = 'Generando...';
+  // 3. Validar que ambas firmas existan
+  if (!firmaTieneContenido('firmaAuditor') || !firmaTieneContenido('firmaOperador')) {
+    errEl.textContent = 'Faltan firmas. Asegurate de que el auditor y el operador firmen.';
+    errEl.style.display = 'block';
+    return;
+  }
 
-  var puntos = Object.keys(puntosEstado).map(function(id) {
+  // 4. Validar puntos "No Cumple": obligar a observación o foto como evidencia
+  var ids = Object.keys(puntosEstado);
+  for (var i = 0; i < ids.length; i++) {
+    var p = puntosEstado[ids[i]];
+    if (p.valor === 'nocumple') {
+      var tieneObs   = p.obs && p.obs.trim() !== '';
+      var tieneFotos = p.fotos && p.fotos.length > 0;
+      if (!tieneObs && !tieneFotos) {
+        errEl.textContent = '"' + p.nombre + '" no cumple — agrega una observacion o foto como evidencia.';
+        errEl.style.display = 'block';
+        // Scroll suave al mensaje de error
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+  }
+
+  // 5. Deshabilitar botón e indicar que el proceso tarda (evita que cierren la página)
+  btn.disabled = true;
+  btn.textContent = 'Generando PDF (puede tardar ~30 seg)...';
+
+  var puntos = ids.map(function(id) {
     var p = puntosEstado[id];
     return { nombre: p.nombre, valor: p.valor, obs: p.obs, fotos: p.fotos || [] };
   });
 
   var datos = {
-    folio: datosUnidad.folio,
-    rowIndex: datosUnidad.rowIndex,
-    unidad: datosUnidad.unidad,
-    operador: datosUnidad.operador,
-    planta: extraerPlanta(datosUnidad.motivo),
-    auditor: auditor,
-    kilometraje: document.getElementById('kilometraje').value.trim(),
-    operadorNombreAud: document.getElementById('operadorNombreAud').value.trim(),
-    puntos: puntos,
-    firmaAuditor: firmaToBase64('firmaAuditor'),
-    firmaOperador: firmaToBase64('firmaOperador')
+    folio:            datosUnidad.folio,
+    rowIndex:         datosUnidad.rowIndex,
+    unidad:           datosUnidad.unidad,
+    operador:         datosUnidad.operador,
+    planta:           extraerPlanta(datosUnidad.motivo),
+    auditor:          auditor,
+    kilometraje:      document.getElementById('kilometraje').value.trim(),
+    operadorNombreAud:document.getElementById('operadorNombreAud').value.trim(),
+    puntos:           puntos,
+    firmaAuditor:     firmaToBase64('firmaAuditor'),
+    firmaOperador:    firmaToBase64('firmaOperador')
   };
 
   try {
@@ -572,19 +605,12 @@ async function enviarAuditoria() {
     var result = await res.json();
 
     if (result.ok) {
-      // Una vez enviada, esta unidad queda BAJA en el backend.
-      // Bloqueamos toda interaccion previa con el formulario y el selector
-      // para que no se pueda volver a enviar la misma auditoria.
       datosUnidad = null;
       document.getElementById('buscarSection').style.display = 'none';
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('unidadBanner').style.display = 'none';
       document.getElementById('successPanel').style.display = 'block';
-
-      // Recargar la pagina tras 3 segundos para limpiar firmas y estado
-      setTimeout(function() {
-        window.location.reload();
-      }, 3000);
+      setTimeout(function() { window.location.reload(); }, 3000);
     } else {
       errEl.textContent = 'Error: ' + (result.error || 'desconocido');
       errEl.style.display = 'block';
