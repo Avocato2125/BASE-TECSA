@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Auditoria General — TECSA</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
 
@@ -299,32 +298,45 @@ function generarPuntos() {
 async function procesarFotosPunto(id, files) {
   if (!files || !files.length) return;
 
-  var btn = document.getElementById('fotobtn-' + id);
   var countEl = document.getElementById('fotocount-' + id);
-  btn.classList.add('tiene-fotos');
-  countEl.textContent = 'Comprimiendo...';
+  var btn     = document.getElementById('fotobtn-' + id);
+  countEl.textContent = '...';
 
-  var opciones = {
-    maxSizeMB: 0.3,
-    maxWidthOrHeight: 1024,
-    useWebWorker: true,
-    initialQuality: 0.7
-  };
+  // Compresion rapida con Canvas nativo — sin librerias, sin Workers.
+  // Para fotos de auditoria (uso interno, no impresion) 800px y calidad
+  // 0.6 es mas que suficiente y reduce una foto de 4MB a ~80-120KB.
+  var MAX_DIM = 800;
+  var QUALITY = 0.6;
 
-  try {
-    for (var i = 0; i < files.length; i++) {
-      var archivoComprimido = await imageCompression(files[i], opciones);
-      var base64DataUrl = await imageCompression.getDataUrlFromFile(archivoComprimido);
-      puntosEstado[id].fotos.push({
-        nombre: files[i].name,
-        base64: base64DataUrl.split(',')[1]
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var base64 = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = function(e) {
+          var img = new Image();
+          img.onerror = reject;
+          img.onload = function() {
+            var w = img.width, h = img.height;
+            if (w > MAX_DIM || h > MAX_DIM) {
+              if (w >= h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+              else        { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+            }
+            var c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', QUALITY).split(',')[1]);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(files[i]);
       });
+      puntosEstado[id].fotos.push({ nombre: files[i].name, base64: base64 });
+    } catch(err) {
+      console.error('Error al comprimir foto:', err);
     }
-    actualizarContadorFoto(id);
-  } catch(err) {
-    console.error('Error al comprimir foto:', err);
-    countEl.textContent = 'Error';
   }
+  actualizarContadorFoto(id);
 }
 
 function actualizarContadorFoto(id) {
