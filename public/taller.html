@@ -1270,22 +1270,22 @@ async function enviarReporte() {
     if (!body || !body.classList.contains('open')) continue; // sección no abierta, omitir
 
     for (var it = 0; it < sec.items.length; it++) {
-      var item = sec.items[it];
-      var val  = estadoSino[item.sino];
+      var item    = sec.items[it];
+      var respSino = estadoSino[item.sino];
 
       // 1. Obligatorio responder Si o No
-      if (!val) {
+      if (!respSino) {
         mostrarError('En "' + sec.nombre + '" debes responder Si o No en: ' + item.label);
         document.getElementById('body-' + sec.id).scrollIntoView({ behavior:'smooth', block:'center' });
         return;
       }
 
       // 2. Si respondió Si — verificar campos requeridos
-      if (val === 'si') {
+      if (respSino === 'si') {
         for (var c = 0; c < item.camposReq.length; c++) {
           var campo = document.getElementById(item.camposReq[c]);
           if (campo && !campo.value.trim()) {
-            mostrarError('En "' + sec.nombre + ' → ' + item.label + '" el campo "' + campo.previousElementSibling?.textContent + '" es obligatorio.');
+            mostrarError('En "' + sec.nombre + ' → ' + item.label + '" el campo "' + (campo.previousElementSibling ? campo.previousElementSibling.textContent : item.camposReq[c]) + '" es obligatorio.');
             campo.focus();
             campo.scrollIntoView({ behavior:'smooth', block:'center' });
             return;
@@ -1297,7 +1297,7 @@ async function enviarReporte() {
             var subVal = estadoSino[item.sinosReq[sr]];
             if (!subVal) {
               mostrarError('En "' + sec.nombre + ' → ' + item.label + '" debes responder Si o No en todos los sub-apartados.');
-              document.getElementById('cond-' + item.sino)?.scrollIntoView({ behavior:'smooth', block:'center' });
+              document.getElementById('cond-' + item.sino) && document.getElementById('cond-' + item.sino).scrollIntoView({ behavior:'smooth', block:'center' });
               return;
             }
           }
