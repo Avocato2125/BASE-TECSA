@@ -55,38 +55,63 @@ function ahoraMty() {
   return { fecha, hora };
 }
 
-// ── Folio único con mutex en memoria ───────────────────────────
-// Reemplaza el LockService de Apps Script. Un Map de promesas garantiza
-// que aunque lleguen dos requests al mismo tiempo, el segundo espera
-// a que el primero termine de leer y escribir el folio antes de continuar.
-let _folioLock = Promise.resolve();
-
+// ── Folio único robusto ─────────────────────────────────────────
+// Contadores SEPARADOS: Taller busca solo folios con "T", General solo sin "T".
+// El periodo (MM/AA) cambia automáticamente cada mes — si el mes actual
+// no tiene folios en el Sheet, el contador reinicia desde 001.
+// Con reintentos para manejar race conditions entre instancias de Railway.
 async function generarFolio(sheets, esTaller) {
-  // Encadenar: el siguiente folio espera a que el anterior termine
-  const resultado = _folioLock.then(async () => {
-    const ahora = new Date();
-    const mes   = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
-    const anio  = ahora.toLocaleDateString('es-MX', { year:'2-digit', timeZone:'America/Monterrey' });
-    const periodo = `${mes}/${anio}`;
+  const MAX_INTENTOS = 5;
 
-    const res = await sheets.spreadsheets.values.get({
+  for (let intento = 0; intento < MAX_INTENTOS; intento++) {
+    if (intento > 0) {
+      await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+    }
+
+    const ahora   = new Date();
+    const mes     = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
+    const anio    = ahora.toLocaleDateString('es-MX', { year:'2-digit',  timeZone:'America/Monterrey' });
+    const periodo = `${mes}/${anio}`;   // ej: "06/26", "07/26"
+    const prefijo = `${periodo}-`;       // ej: "06/26-"
+
+    const res  = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: 'Entradas!A2:A',
     });
-    const rows = (res.data.values || []).flat();
+    const filas = (res.data.values || []).flat();
+
+    // Filtrar SOLO los folios del periodo actual Y del tipo correcto
     let max = 0;
-    rows.forEach(f => {
-      if (typeof f === 'string' && f.startsWith(periodo + '-')) {
-        const num = parseInt(f.replace(periodo + '-', '').replace('T', ''), 10);
-        if (!isNaN(num) && num > max) max = num;
-      }
+    filas.forEach(f => {
+      if (typeof f !== 'string') return;
+      if (!f.startsWith(prefijo)) return;          // diferente periodo → ignorar
+      const resto = f.slice(prefijo.length);       // ej: "T013" o "012"
+      if (esTaller && !resto.startsWith('T')) return;   // buscamos T, ignorar generales
+      if (!esTaller && resto.startsWith('T')) return;   // buscamos generales, ignorar T
+      const num = parseInt(resto.replace('T', ''), 10);
+      if (!isNaN(num) && num > max) max = num;
     });
+
     const siguiente = String(max + 1).padStart(3, '0');
-    return `${periodo}-${esTaller ? 'T' : ''}${siguiente}`;
-  });
-  // Actualizar la cadena — el próximo esperará a que este termine
-  _folioLock = resultado.catch(() => {});
-  return resultado;
+    const folio     = `${prefijo}${esTaller ? 'T' : ''}${siguiente}`;
+
+    // Verificar que el folio no exista ya (protección contra race condition)
+    if (filas.includes(folio)) {
+      console.warn(`Folio ${folio} ya existe, reintentando (intento ${intento + 1})`);
+      continue;
+    }
+
+    console.log(`Folio generado: ${folio} (intento ${intento + 1})`);
+    return folio;
+  }
+
+  // Fallback con timestamp si hay demasiados conflictos
+  const ahora   = new Date();
+  const mes     = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
+  const anio    = ahora.toLocaleDateString('es-MX', { year:'2-digit',  timeZone:'America/Monterrey' });
+  const fallback = `${mes}/${anio}-${esTaller ? 'T' : ''}ERR${Date.now().toString().slice(-4)}`;
+  console.error(`Folio fallback usado: ${fallback}`);
+  return fallback;
 }
 
 // ── Drive: obtener o crear carpeta ──────────────────────────────
