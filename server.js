@@ -69,25 +69,41 @@ async function generarFolio(sheets, esTaller) {
 
 // ── Drive: obtener o crear carpeta ──────────────────────────────
 async function getOCrearCarpeta(drive, padreId, nombre) {
+  if (!padreId) throw new Error('getOCrearCarpeta: padreId es undefined para carpeta "' + nombre + '"');
   const q = `'${padreId}' in parents and name='${nombre}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const res = await drive.files.list({ q, fields: 'files(id)', pageSize: 1 });
-  if (res.data.files.length > 0) return res.data.files[0].id;
+  const res = await drive.files.list({
+    q,
+    fields: 'files(id)',
+    pageSize: 1,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+  if (res.data.files.length > 0) {
+    console.log(`Carpeta existente "${nombre}": ${res.data.files[0].id}`);
+    return res.data.files[0].id;
+  }
   const nuevo = await drive.files.create({
     requestBody: { name: nombre, mimeType: 'application/vnd.google-apps.folder', parents: [padreId] },
     fields: 'id',
+    supportsAllDrives: true,
   });
+  console.log(`Carpeta creada "${nombre}": ${nuevo.data.id} en padre ${padreId}`);
   return nuevo.data.id;
 }
 
-// ── Drive: subir archivo base64 ─────────────────────────────────
+// ── Drive: subir archivo ─────────────────────────────────────────
 async function subirArchivo(drive, carpetaId, nombre, base64, mimeType) {
+  if (!carpetaId) throw new Error('subirArchivo: carpetaId es undefined para archivo "' + nombre + '"');
+  console.log(`Subiendo "${nombre}" a carpeta ${carpetaId}`);
   const buffer = Buffer.from(base64, 'base64');
   const stream = Readable.from(buffer);
   const res = await drive.files.create({
     requestBody: { name: nombre, parents: [carpetaId] },
     media: { mimeType, body: stream },
     fields: 'id,webViewLink',
+    supportsAllDrives: true,
   });
+  console.log(`Archivo subido: ${res.data.id}`);
   return res.data;
 }
 
@@ -557,4 +573,9 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`TECSA en puerto ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`TECSA en puerto ${PORT}`);
+  console.log(`FOLDER_RAIZ: ${FOLDER_RAIZ}`);
+  console.log(`FOLDER_AUDITORIAS: ${FOLDER_AUDITORIAS}`);
+  console.log(`SHEET_ID: ${SHEET_ID}`);
+});
