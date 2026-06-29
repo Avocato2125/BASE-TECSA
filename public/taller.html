@@ -1170,15 +1170,22 @@ async function procesarFotos(idBase) {
 async function recolectarPiezas(area) {
   var lista = document.getElementById('piezas-' + area + '-lista');
   if (!lista) return [];
-  var items = lista.querySelectorAll('[id^="pieza-' + area + '-"]');
+  // Seleccionar SOLO los divs directos que son contenedores de pieza,
+  // no sus hijos internos (nombre, mat, obs, foto) que también tienen id con el mismo prefijo
+  var items = lista.querySelectorAll(':scope > div[id^="pieza-' + area + '-"]');
   var result = [];
   for (var i = 0; i < items.length; i++) {
     var id = items[i].id;
+    var nombre   = (document.getElementById(id+'-nombre') || {}).value || '';
+    var material = (document.getElementById(id+'-mat')    || {}).value || '';
+    var obs      = (document.getElementById(id+'-obs')    || {}).value || '';
+    // Solo incluir si al menos tiene nombre o material
+    if (!nombre && !material) continue;
     result.push({
-      nombre:    (document.getElementById(id+'-nombre') || {}).value || '',
-      material:  (document.getElementById(id+'-mat')    || {}).value || '',
-      obs:       (document.getElementById(id+'-obs')    || {}).value || '',
-      fotos:     await procesarFotosPar(id+'-foto')
+      nombre:   nombre,
+      material: material,
+      obs:      obs,
+      fotos:    await procesarFotosPar(id+'-foto')
     });
   }
   return result;

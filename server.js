@@ -297,7 +297,15 @@ const HEADERS_TALLER = {
 function v(obj, key) { return (obj && obj[key] != null) ? String(obj[key]) : ''; }
 function filtroVal(t, key) { const f = t?.servicio?.filtros?.[key]; return f?.cambiado ? 'Si' : 'No'; }
 function filtroObs(t, key)  { const f = t?.servicio?.filtros?.[key]; return f?.obs || ''; }
-function piezasTexto(arr)   { return (arr||[]).map((p,i) => `${i+1}. ${p.nombre||''} — ${p.material||''}${p.obs?' ['+p.obs+']':''}`).join(' | '); }
+function piezasTexto(arr) {
+  return (arr || []).map((p, i) => {
+    const partes = [];
+    if (p.nombre)   partes.push(`Nombre de la pz: ${p.nombre}`);
+    if (p.material) partes.push(`Material us: ${p.material}`);
+    if (p.obs)      partes.push(`Obs: ${p.obs}`);
+    return partes.join(' | ');
+  }).filter(Boolean).join(' // ');
+}
 
 app.post('/api/reporte-taller', async (req, res) => {
   try {
