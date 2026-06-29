@@ -216,7 +216,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHonme6UHPWH7bUY5mTN-mM03G_IKMPD153eMDPkI_a5OBgdpQDbovUqv9etNQyME7Og/exec';
+var APPS_SCRIPT_URL = window.location.origin + '/api/auditoria';
 var API_URL = window.location.origin;
 var datosUnidad = null;
 
@@ -627,9 +627,8 @@ async function enviarAuditoria() {
   try {
     var res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(datos),
-      redirect: 'follow'
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
     });
     var result = await res.json();
 

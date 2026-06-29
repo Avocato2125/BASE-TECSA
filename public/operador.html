@@ -399,7 +399,7 @@
 </div>
 
 <script>
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLtJbbnFMmouip67Uh0fuivwaZmmBEnmVSmArD9gN-TpbAZLEESI5XIG-panF3lIPqxg/exec';
+// URL migrada a Railway — ya no se usa Apps Script
 var API_URL = window.location.origin;
 
 var motivoSeleccionado = null;
@@ -503,8 +503,11 @@ async function guardar() {
 
   try {
     // Usar GET con parametros para poder leer la respuesta (evita problema CORS de POST)
-    var url = APPS_SCRIPT_URL + '?datos=' + encodeURIComponent(JSON.stringify(datos));
-    var res  = await fetch(url, { method:'GET', redirect:'follow' });
+    var res  = await fetch(API_URL + '/api/registrar-entrada', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
     var result = await res.json();
 
     if (result.ok) {
