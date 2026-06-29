@@ -16,21 +16,34 @@ const PASS_BAJA        = process.env.PASSWORD_BAJA   || 'Tecsa2125';
 const FOLDER_RAIZ      = process.env.FOLDER_RAIZ     || '14jjhGkt9Zq6T-RG4w3A2xMPqxlG3JhNY';
 const FOLDER_AUDITORIAS = process.env.FOLDER_AUDITORIAS || '174I1SxpnD8dGbBjDRRRt1WqLE5FyVbcw';
 
-// ── Autenticación Google (Sheets + Drive) ──────────────────────
-function getAuth() {
+// ── Autenticación Google ────────────────────────────────────────
+// Sheets → Service Account (ya funciona)
+// Drive  → OAuth con cuenta personal (resuelve el error de storage quota)
+function getSheetsAuth() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   return new google.auth.GoogleAuth({
     credentials,
-    scopes: [
-      'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/drive',
-    ],
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 }
+
+function getDriveAuth() {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.OAUTH_CLIENT_ID,
+    process.env.OAUTH_CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  );
+  oauth2Client.setCredentials({
+    refresh_token: process.env.OAUTH_REFRESH_TOKEN,
+  });
+  return oauth2Client;
+}
+
 async function getClients() {
-  const auth   = await getAuth().getClient();
-  const sheets = google.sheets({ version: 'v4', auth });
-  const drive  = google.drive({ version: 'v3', auth });
+  const sheetsAuth = await getSheetsAuth().getClient();
+  const driveAuth  = getDriveAuth();
+  const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
+  const drive  = google.drive({ version: 'v3', auth: driveAuth });
   return { sheets, drive };
 }
 
