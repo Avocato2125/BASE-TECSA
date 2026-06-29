@@ -55,29 +55,38 @@ function ahoraMty() {
   return { fecha, hora };
 }
 
-// ── Folio único ─────────────────────────────────────────────────
-// Usa la hoja Entradas para calcular el último folio del mes actual,
-// igual que hacía Apps Script pero ahora en Node.
-async function generarFolio(sheets, esTaller) {
-  const ahora = new Date();
-  const mes   = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
-  const anio  = ahora.toLocaleDateString('es-MX', { year:'2-digit', timeZone:'America/Monterrey' });
-  const periodo = `${mes}/${anio}`;
+// ── Folio único con mutex en memoria ───────────────────────────
+// Reemplaza el LockService de Apps Script. Un Map de promesas garantiza
+// que aunque lleguen dos requests al mismo tiempo, el segundo espera
+// a que el primero termine de leer y escribir el folio antes de continuar.
+let _folioLock = Promise.resolve();
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: 'Entradas!A2:A',
+async function generarFolio(sheets, esTaller) {
+  // Encadenar: el siguiente folio espera a que el anterior termine
+  const resultado = _folioLock.then(async () => {
+    const ahora = new Date();
+    const mes   = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
+    const anio  = ahora.toLocaleDateString('es-MX', { year:'2-digit', timeZone:'America/Monterrey' });
+    const periodo = `${mes}/${anio}`;
+
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: 'Entradas!A2:A',
+    });
+    const rows = (res.data.values || []).flat();
+    let max = 0;
+    rows.forEach(f => {
+      if (typeof f === 'string' && f.startsWith(periodo + '-')) {
+        const num = parseInt(f.replace(periodo + '-', '').replace('T', ''), 10);
+        if (!isNaN(num) && num > max) max = num;
+      }
+    });
+    const siguiente = String(max + 1).padStart(3, '0');
+    return `${periodo}-${esTaller ? 'T' : ''}${siguiente}`;
   });
-  const rows = (res.data.values || []).flat();
-  let max = 0;
-  rows.forEach(f => {
-    if (typeof f === 'string' && f.startsWith(periodo + '-')) {
-      const num = parseInt(f.replace(periodo + '-', '').replace('T', ''), 10);
-      if (!isNaN(num) && num > max) max = num;
-    }
-  });
-  const siguiente = String(max + 1).padStart(3, '0');
-  return `${periodo}-${esTaller ? 'T' : ''}${siguiente}`;
+  // Actualizar la cadena — el próximo esperará a que este termine
+  _folioLock = resultado.catch(() => {});
+  return resultado;
 }
 
 // ── Drive: obtener o crear carpeta ──────────────────────────────
