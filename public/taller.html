@@ -1203,20 +1203,115 @@ async function recolectarFiltros() {
   return result;
 }
 
+function mostrarError(msg) {
+  var errEl = document.getElementById('errorMsg');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  var btn = document.getElementById('btnEnviar');
+  btn.disabled = false;
+  btn.textContent = 'Enviar Reporte';
+}
+
 // ── ENVIAR ────────────────────────────────────────────────
 async function enviarReporte() {
   var btn = document.getElementById('btnEnviar');
   var errEl = document.getElementById('errorMsg');
   errEl.style.display = 'none';
+
+  // ── Validación: mecánico y unidad ───────────────────────
+  var mecanico = document.getElementById('mecanico').value.trim();
+  if (!mecanico) { mostrarError('Ingresa el nombre del mecanico.'); return; }
+  if (!datosUnidad) { mostrarError('Busca una unidad primero.'); return; }
+
+  // ── Validación: secciones y Si/No ───────────────────────
+  // Mapa de cada sección con sus Si/No y campos requeridos cuando es "Si"
+  var SECCIONES_VALIDAR = [
+    {
+      id: 'taller', nombre: 'Taller Mecanico',
+      items: [
+        { sino: 'aceite',    label: 'Aceite',    camposReq: ['aceite-km','aceite-cap','aceite-lit-ant','aceite-lit-nuevo'], sinosReq: ['nivel-bajo'] },
+        { sino: 'frenos',    label: 'Frenos',    camposReq: [] },
+        { sino: 'servicio',  label: 'Servicio',  camposReq: [], sinosReq: ['engrasado','srv-aceite','filtros'] },
+        { sino: 'afinacion', label: 'Afinacion', camposReq: ['afinacion-km'] },
+        { sino: 'piezas-tal',label: 'Piezas',    camposReq: [] },
+      ]
+    },
+    {
+      id: 'electrico', nombre: 'Electrico',
+      items: [
+        { sino: 'carga-bat',  label: 'Carga de Bateria',  camposReq: ['volt-ant','volt-nuevo'] },
+        { sino: 'cambio-bat', label: 'Cambio de Bateria', camposReq: ['motivo-bat'] },
+        { sino: 'piezas-elec',label: 'Piezas',            camposReq: [] },
+      ]
+    },
+    {
+      id: 'imagen', nombre: 'Imagen',
+      items: [
+        { sino: 'calcas',    label: 'Calcas',    camposReq: ['calcas-mat'] },
+        { sino: 'asiento',   label: 'Asiento',   camposReq: ['asiento-mat'] },
+        { sino: 'pintura',   label: 'Pintura',   camposReq: ['pintura-area','pintura-mat'] },
+        { sino: 'soldadura', label: 'Soldadura', camposReq: ['soldadura-mat'] },
+        { sino: 'piezas-img',label: 'Piezas',    camposReq: [] },
+      ]
+    },
+    {
+      id: 'llantas', nombre: 'Llantas',
+      items: [
+        { sino: 'cambio-llanta', label: 'Cambio de Llanta',    camposReq: ['llanta-marca'] },
+        { sino: 'rep-llanta',    label: 'Reparacion de Llanta', camposReq: ['llanta-vida'] },
+      ]
+    },
+  ];
+
+  for (var s = 0; s < SECCIONES_VALIDAR.length; s++) {
+    var sec = SECCIONES_VALIDAR[s];
+    var body = document.getElementById('body-' + sec.id);
+    if (!body || !body.classList.contains('open')) continue; // sección no abierta, omitir
+
+    for (var it = 0; it < sec.items.length; it++) {
+      var item = sec.items[it];
+      var val  = estadoSino[item.sino];
+
+      // 1. Obligatorio responder Si o No
+      if (!val) {
+        mostrarError('En "' + sec.nombre + '" debes responder Si o No en: ' + item.label);
+        document.getElementById('body-' + sec.id).scrollIntoView({ behavior:'smooth', block:'center' });
+        return;
+      }
+
+      // 2. Si respondió Si — verificar campos requeridos
+      if (val === 'si') {
+        for (var c = 0; c < item.camposReq.length; c++) {
+          var campo = document.getElementById(item.camposReq[c]);
+          if (campo && !campo.value.trim()) {
+            mostrarError('En "' + sec.nombre + ' → ' + item.label + '" el campo "' + campo.previousElementSibling?.textContent + '" es obligatorio.');
+            campo.focus();
+            campo.scrollIntoView({ behavior:'smooth', block:'center' });
+            return;
+          }
+        }
+        // 3. Si tiene sub-Si/No requeridos, validarlos también
+        if (item.sinosReq) {
+          for (var sr = 0; sr < item.sinosReq.length; sr++) {
+            var subVal = estadoSino[item.sinosReq[sr]];
+            if (!subVal) {
+              mostrarError('En "' + sec.nombre + ' → ' + item.label + '" debes responder Si o No en todos los sub-apartados.');
+              document.getElementById('cond-' + item.sino)?.scrollIntoView({ behavior:'smooth', block:'center' });
+              return;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ── Todo válido — continuar con el envío ────────────────
   btn.disabled = true; btn.textContent = 'Preparando fotos...';
   document.getElementById('progressBar').style.display = 'block';
   setProgress(10);
 
   try {
-    var mecanico = document.getElementById('mecanico').value.trim();
-    if (!mecanico) throw new Error('Ingresa el nombre del mecanico.');
-    if (!datosUnidad)  throw new Error('Busca una unidad primero.');
-
     setProgress(20);
 
     var reporte = {
