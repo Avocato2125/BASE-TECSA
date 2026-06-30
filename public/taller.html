@@ -247,8 +247,8 @@
     margin: 14px 0;
   }
 
-  /* FILTROS grid */
-  .filtros-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  /* FILTROS grid — una columna, cada filtro necesita espacio para evidencia y obs */
+  .filtros-grid { display:grid; grid-template-columns:1fr; gap:10px; }
 
   /* BTN SUBMIT */
   .btn-submit {
@@ -278,7 +278,6 @@
   @media(max-width:480px) {
     .form-body { padding:18px 16px 20px; }
     .unidad-banner { margin:16px 16px 0; }
-    .filtros-grid { grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -966,10 +965,10 @@ function generarFiltros() {
       + '</div>'
       + '<div class="sub-cond" id="cond-' + f.id + '">'
       +   '<div class="field" style="margin-top:8px;"><label>Evidencia</label>'
-      +     '<div class="foto-area" onclick="triggerFoto(\'foto-' + f.id + '\')">'
-      +       '<input type="file" id="foto-' + f.id + '" accept="image/*" multiple onchange="previsualizarFotos(this,\'prev-' + f.id + '\')">'
-      +       '<div class="foto-area-label">Toca para subir foto</div>'
-      +       '<div class="foto-preview" id="prev-' + f.id + '"></div>'
+      +     '<div class="foto-slot" id="slot-foto-' + f.id + '" onclick="document.getElementById(\'foto-' + f.id + '\').click()">'
+      +       '<input type="file" id="foto-' + f.id + '" accept="image/*" multiple style="display:none" onchange="onFotoChange(this,\'foto-' + f.id + '\')">'
+      +       '<div class="foto-slot-lbl">Evidencia</div>'
+      +       '<div class="foto-slot-count" id="cnt-foto-' + f.id + '">0 fotos</div>'
       +     '</div>'
       +   '</div>'
       +   '<div class="field"><label>Observaciones</label><textarea id="obs-' + f.id + '" placeholder="Observaciones..."></textarea></div>'
@@ -1063,11 +1062,12 @@ function agregarPieza(area) {
   var id = 'pieza-' + area + '-' + n;
   var div = document.createElement('div');
   div.id = id;
+  div.className = 'pieza-item';
   div.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;position:relative;';
   div.innerHTML =
-    '<button type="button" onclick="document.getElementById(\'' + id + '\').remove()" '
+    '<button type="button" onclick="eliminarPieza(\'' + area + '\',\'' + id + '\')" '
     + 'style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;">&#x2715;</button>'
-    + '<div class="sub-label" style="margin-bottom:10px;">Pieza ' + n + '</div>'
+    + '<div class="sub-label pieza-titulo" style="margin-bottom:10px;">Pieza ' + n + '</div>'
     + '<div class="field"><label>Nombre de la pieza</label><input type="text" id="' + id + '-nombre" placeholder="Nombre o descripcion"></div>'
     + '<div class="field"><label>Materiales usados</label><input type="text" id="' + id + '-mat" placeholder="Materiales y cantidades"></div>'
     + '<div class="field"><label>Evidencia — Pieza nueva y vieja</label>'
@@ -1086,6 +1086,25 @@ function agregarPieza(area) {
     + '</div>'
     + '<div class="field"><label>Observaciones</label><textarea id="' + id + '-obs" placeholder="Observaciones..."></textarea></div>';
   lista.appendChild(div);
+}
+
+// Elimina una pieza y renumera visualmente las restantes (1,2,3...)
+// El contador interno NO se reinicia para que los id sigan siendo únicos,
+// pero el título "Pieza N" que ve el usuario siempre queda consecutivo.
+function eliminarPieza(area, id) {
+  var el = document.getElementById(id);
+  if (el) el.remove();
+  renumerarPiezas(area);
+}
+
+function renumerarPiezas(area) {
+  var lista = document.getElementById('piezas-' + area + '-lista');
+  if (!lista) return;
+  var items = lista.querySelectorAll(':scope > div.pieza-item');
+  items.forEach(function(item, idx) {
+    var titulo = item.querySelector('.pieza-titulo');
+    if (titulo) titulo.textContent = 'Pieza ' + (idx + 1);
+  });
 }
 
 // ── Foto / compresión ─────────────────────────────────────
@@ -1177,16 +1196,13 @@ async function procesarFotos(idBase) {
 async function recolectarPiezas(area) {
   var lista = document.getElementById('piezas-' + area + '-lista');
   if (!lista) return [];
-  // Seleccionar SOLO los divs directos que son contenedores de pieza,
-  // no sus hijos internos (nombre, mat, obs, foto) que también tienen id con el mismo prefijo
-  var items = lista.querySelectorAll(':scope > div[id^="pieza-' + area + '-"]');
+  var items = lista.querySelectorAll(':scope > div.pieza-item');
   var result = [];
   for (var i = 0; i < items.length; i++) {
     var id = items[i].id;
     var nombre   = (document.getElementById(id+'-nombre') || {}).value || '';
     var material = (document.getElementById(id+'-mat')    || {}).value || '';
     var obs      = (document.getElementById(id+'-obs')    || {}).value || '';
-    // Solo incluir si al menos tiene nombre o material
     if (!nombre && !material) continue;
     result.push({
       nombre:   nombre,
