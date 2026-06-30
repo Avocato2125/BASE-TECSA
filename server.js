@@ -487,19 +487,26 @@ async function generarPDFAuditoria(datos, fecha) {
     doc.moveDown(0.3);
 
     // ── Header: datos generales ──
-    doc.fontSize(9).font('Helvetica-Bold').text('Planta: ', { continued: true })
+    // Posicionado explícitamente después del logo, con ancho fijo para
+    // que el texto haga wrap correctamente y nunca se salga del margen derecho.
+    const HEADER_X = 135;            // después del logo
+    const HEADER_W = W - (HEADER_X - 36); // ancho disponible hasta el margen derecho
+    doc.x = HEADER_X;
+    doc.y = 36;
+    doc.fontSize(9).font('Helvetica-Bold').text('Planta: ', HEADER_X, 36, { continued: true, width: HEADER_W })
        .font('Helvetica').text(datos.planta || '', { continued: true })
        .font('Helvetica-Bold').text('    Fecha: ', { continued: true })
        .font('Helvetica').text(fecha);
-    doc.font('Helvetica-Bold').text('Unidad: ', { continued: true })
+    doc.font('Helvetica-Bold').text('Unidad: ', HEADER_X, doc.y, { continued: true, width: HEADER_W })
        .font('Helvetica').text(String(datos.unidad||''), { continued: true })
        .font('Helvetica-Bold').text('    Nombre del operador: ', { continued: true })
        .font('Helvetica').text(datos.operadorNombreAud || datos.operador || '');
-    doc.font('Helvetica-Bold').text('Kilometraje: ', { continued: true })
+    doc.font('Helvetica-Bold').text('Kilometraje: ', HEADER_X, doc.y, { continued: true, width: HEADER_W })
        .font('Helvetica').text(String(datos.kilometraje||''), { continued: true })
        .font('Helvetica-Bold').text('    Auditor: ', { continued: true })
        .font('Helvetica').text(datos.auditor || '');
-    doc.moveDown(0.5);
+    doc.x = 36; // restaurar margen izquierdo normal para el resto del documento
+    doc.y = Math.max(doc.y, 75) + 10;
 
     // ── Tabla ──
     const COL = [W*0.45, W*0.12, W*0.12, W*0.31];
@@ -548,28 +555,33 @@ async function generarPDFAuditoria(datos, fecha) {
 
     // ── Firmas ──
     doc.moveDown(1.5);
-    const yFirma = doc.y;
-    const mitad  = 36 + W/2;
+    const yFirma     = doc.y;
+    const mitadIzqX  = 36;
+    const mitadDerX  = 36 + W/2;
+    const FIRMA_W    = 160;
+    const FIRMA_H    = 64;
 
-    // Firma auditor
+    // Firma auditor — imagen centrada dentro de su mitad, texto centrado en la misma mitad
     if (datos.firmaAuditor) {
       try {
         const bufA = Buffer.from(datos.firmaAuditor, 'base64');
-        doc.image(bufA, 36, yFirma, { width: 180, height: 72 });
+        const xImgA = mitadIzqX + (W/2 - FIRMA_W) / 2; // centra la imagen en su mitad
+        doc.image(bufA, xImgA, yFirma, { width: FIRMA_W, height: FIRMA_H });
       } catch(e) {}
     }
-    doc.fontSize(9).font('Helvetica-Bold').text('Nombre y Firma del Auditor', 36, yFirma + 78, { width: W/2, align: 'center' });
-    doc.font('Helvetica').text(datos.auditor || '', 36, yFirma + 90, { width: W/2, align: 'center' });
+    doc.fontSize(9).font('Helvetica-Bold').text('Nombre y Firma del Auditor', mitadIzqX, yFirma + FIRMA_H + 6, { width: W/2, align: 'center' });
+    doc.font('Helvetica').text(datos.auditor || '', mitadIzqX, yFirma + FIRMA_H + 18, { width: W/2, align: 'center' });
 
-    // Firma operador
+    // Firma operador — imagen centrada dentro de su mitad, texto centrado en la misma mitad
     if (datos.firmaOperador) {
       try {
         const bufO = Buffer.from(datos.firmaOperador, 'base64');
-        doc.image(bufO, mitad, yFirma, { width: 180, height: 72 });
+        const xImgO = mitadDerX + (W/2 - FIRMA_W) / 2; // centra la imagen en su mitad
+        doc.image(bufO, xImgO, yFirma, { width: FIRMA_W, height: FIRMA_H });
       } catch(e) {}
     }
-    doc.font('Helvetica-Bold').text('Nombre y Firma del Operador', mitad, yFirma + 78, { width: W/2, align: 'center' });
-    doc.font('Helvetica').text(datos.operadorNombreAud || datos.operador || '', mitad, yFirma + 90, { width: W/2, align: 'center' });
+    doc.font('Helvetica-Bold').text('Nombre y Firma del Operador', mitadDerX, yFirma + FIRMA_H + 6, { width: W/2, align: 'center' });
+    doc.font('Helvetica').text(datos.operadorNombreAud || datos.operador || '', mitadDerX, yFirma + FIRMA_H + 18, { width: W/2, align: 'center' });
 
     doc.end();
   });
