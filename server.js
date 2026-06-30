@@ -477,23 +477,22 @@ async function generarPDFAuditoria(datos, fecha) {
     const AZUL_OSC = '#16213e';
     const W = doc.page.width - 72; // ancho util
 
-    // ── Logo + título alineados ──
+    // ── Título centrado arriba ──
+    doc.fontSize(16).font('Helvetica-Bold').text('AUDITORIA GENERAL', 0, 30, { align: 'center' });
+
+    // ── Logo a la izquierda, debajo del título ──
+    const LOGO_Y = 56;
     try {
       const logoBuf = Buffer.from(LOGO_BASE64, 'base64');
-      doc.image(logoBuf, 36, 30, { width: 90, height: 36 });
+      doc.image(logoBuf, 36, LOGO_Y, { width: 90, height: 36 });
     } catch(e) { console.error('Error insertando logo:', e.message); }
-    doc.fontSize(16).font('Helvetica-Bold').text('AUDITORIA GENERAL', 0, 36, { align: 'center' });
-    doc.y = 75;
-    doc.moveDown(0.3);
 
-    // ── Header: datos generales ──
-    // Posicionado explícitamente después del logo, con ancho fijo para
-    // que el texto haga wrap correctamente y nunca se salga del margen derecho.
-    const HEADER_X = 135;            // después del logo
-    const HEADER_W = W - (HEADER_X - 36); // ancho disponible hasta el margen derecho
-    doc.x = HEADER_X;
-    doc.y = 36;
-    doc.fontSize(9).font('Helvetica-Bold').text('Planta: ', HEADER_X, 36, { continued: true, width: HEADER_W })
+    // ── Header: datos generales, a la derecha del logo ──
+    // Posicionado explícitamente para que el texto haga wrap correctamente
+    // y nunca se solape con el logo ni se salga del margen derecho.
+    const HEADER_X = 135;                  // después del logo
+    const HEADER_W = W - (HEADER_X - 36);  // ancho disponible hasta el margen derecho
+    doc.fontSize(9).font('Helvetica-Bold').text('Planta: ', HEADER_X, LOGO_Y, { continued: true, width: HEADER_W })
        .font('Helvetica').text(datos.planta || '', { continued: true })
        .font('Helvetica-Bold').text('    Fecha: ', { continued: true })
        .font('Helvetica').text(fecha);
@@ -505,8 +504,12 @@ async function generarPDFAuditoria(datos, fecha) {
        .font('Helvetica').text(String(datos.kilometraje||''), { continued: true })
        .font('Helvetica-Bold').text('    Auditor: ', { continued: true })
        .font('Helvetica').text(datos.auditor || '');
-    doc.x = 36; // restaurar margen izquierdo normal para el resto del documento
-    doc.y = Math.max(doc.y, 75) + 10;
+
+    // Asegurar que el cursor quede debajo de lo más alto entre logo y header,
+    // con un pequeño margen antes de empezar la tabla
+    doc.x = 36;
+    doc.y = Math.max(doc.y, LOGO_Y + 36) + 12;
+
 
     // ── Tabla ──
     const COL = [W*0.45, W*0.12, W*0.12, W*0.31];
