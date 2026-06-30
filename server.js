@@ -525,7 +525,7 @@ async function generarPDFAuditoria(datos, fecha) {
         doc.moveTo(X[i], y).lineTo(X[i], y + ROW_H).stroke('#999999');
       }
       cols.forEach((txt, i) => {
-        doc.fillColor(bg && bg !== '#ffffff' ? '#ffffff' : '#000000')
+        doc.fillColor(bg === AZUL_OSC ? '#ffffff' : '#000000')
            .fontSize(8).font(bg === AZUL_OSC ? 'Helvetica-Bold' : 'Helvetica')
            .text(txt, X[i]+3, y+4, { width: COL[i]-6, lineBreak: false });
       });
