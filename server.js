@@ -11,10 +11,29 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const SHEET_ID         = process.env.GOOGLE_SHEET_ID;
-const PASS_BAJA        = process.env.PASSWORD_BAJA   || 'Tecsa2125';
-const FOLDER_RAIZ      = process.env.FOLDER_RAIZ     || '14jjhGkt9Zq6T-RG4w3A2xMPqxlG3JhNY';
-const FOLDER_AUDITORIAS = process.env.FOLDER_AUDITORIAS || '174I1SxpnD8dGbBjDRRRt1WqLE5FyVbcw';
+const SHEET_ID          = process.env.GOOGLE_SHEET_ID;
+const PASS_BAJA         = process.env.PASSWORD_BAJA;
+const FOLDER_RAIZ       = process.env.FOLDER_RAIZ;
+const FOLDER_AUDITORIAS = process.env.FOLDER_AUDITORIAS;
+
+// Verificación al arrancar: si falta alguna variable critica, detener el
+// servidor con un mensaje claro en vez de seguir con valores por defecto
+// inseguros (contraseñas o IDs hardcodeados en el código fuente).
+const REQUIRED_VARS = {
+  GOOGLE_SHEET_ID: SHEET_ID,
+  PASSWORD_BAJA: PASS_BAJA,
+  FOLDER_RAIZ: FOLDER_RAIZ,
+  FOLDER_AUDITORIAS: FOLDER_AUDITORIAS,
+  GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
+  OAUTH_CLIENT_ID: process.env.OAUTH_CLIENT_ID,
+  OAUTH_CLIENT_SECRET: process.env.OAUTH_CLIENT_SECRET,
+  OAUTH_REFRESH_TOKEN: process.env.OAUTH_REFRESH_TOKEN,
+};
+const faltantes = Object.entries(REQUIRED_VARS).filter(([, v]) => !v).map(([k]) => k);
+if (faltantes.length) {
+  console.error('Faltan variables de entorno requeridas:', faltantes.join(', '));
+  process.exit(1);
+}
 
 // ── Autenticación Google ────────────────────────────────────────
 // Sheets → Service Account (ya funciona)
