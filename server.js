@@ -15,6 +15,8 @@ const SHEET_ID          = process.env.GOOGLE_SHEET_ID;
 const PASS_BAJA         = process.env.PASSWORD_BAJA;
 const FOLDER_RAIZ       = process.env.FOLDER_RAIZ;
 const FOLDER_AUDITORIAS = process.env.FOLDER_AUDITORIAS;
+const SHEET_ID_PROVEDORES = process.env.SHEET_ID_PROVEDORES;
+const FOLDER_PROVEDORES   = process.env.FOLDER_PROVEDORES;
 
 // Verificación al arrancar: si falta alguna variable critica, detener el
 // servidor con un mensaje claro en vez de seguir con valores por defecto
@@ -28,6 +30,8 @@ const REQUIRED_VARS = {
   OAUTH_CLIENT_ID: process.env.OAUTH_CLIENT_ID,
   OAUTH_CLIENT_SECRET: process.env.OAUTH_CLIENT_SECRET,
   OAUTH_REFRESH_TOKEN: process.env.OAUTH_REFRESH_TOKEN,
+  SHEET_ID_PROVEDORES: process.env.SHEET_ID_PROVEDORES,
+  FOLDER_PROVEDORES: process.env.FOLDER_PROVEDORES,
 };
 const faltantes = Object.entries(REQUIRED_VARS).filter(([, v]) => !v).map(([k]) => k);
 if (faltantes.length) {
@@ -666,6 +670,164 @@ app.post('/api/auditoria', async (req, res) => {
     }
 
     res.json({ ok: true, pdfUrl });
+  } catch(e) { console.error(e); res.json({ ok: false, error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PROVEEDORES EXTERNOS — registro, listado y salida con evidencias
+// Spreadsheet separado (SHEET_ID_PROVEDORES), primera hoja.
+// Drive: FOLDER_PROVEDORES / NombreProveedor / dd-MM-yyyy / fotos
+// ═══════════════════════════════════════════════════════════════
+const HEADERS_PROV = ['Folio','Fecha Entrada','Hora Entrada','Proveedor','Piezas que Ingresa','Trabajo a Realizar','Factura','Estado','Fecha Salida','Hora Salida','Trabajo Realizado'];
+
+// Asegura que la primera hoja tenga encabezados (solo la primera vez)
+async function asegurarHeadersProv(sheets) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID_PROVEDORES, range: 'A1:K1',
+  });
+  const fila1 = (res.data.values || [])[0] || [];
+  if (!fila1.length || !fila1[0]) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID_PROVEDORES, range: 'A1',
+      valueInputOption: 'RAW', requestBody: { values: [HEADERS_PROV] }
+    });
+  }
+}
+
+// Folio de proveedor: MM/AA-P001, contador propio en su spreadsheet,
+// con la misma protección de reintentos que el folio general.
+async function generarFolioProv(sheets) {
+  const MAX_INTENTOS = 5;
+  for (let intento = 0; intento < MAX_INTENTOS; intento++) {
+    if (intento > 0) await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+    const ahora   = new Date();
+    const mes     = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
+    const anio    = ahora.toLocaleDateString('es-MX', { year:'2-digit', timeZone:'America/Monterrey' });
+    const prefijo = `${mes}/${anio}-P`;
+    const res  = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID_PROVEDORES, range: 'A2:A' });
+    const filas = (res.data.values || []).flat();
+    let max = 0;
+    filas.forEach(f => {
+      if (typeof f === 'string' && f.startsWith(prefijo)) {
+        const num = parseInt(f.slice(prefijo.length), 10);
+        if (!isNaN(num) && num > max) max = num;
+      }
+    });
+    const folio = `${prefijo}${String(max + 1).padStart(3, '0')}`;
+    if (filas.includes(folio)) { console.warn(`Folio prov ${folio} duplicado, reintento`); continue; }
+    return folio;
+  }
+  const ahora = new Date();
+  const mes   = String(ahora.toLocaleDateString('es-MX', { month:'2-digit', timeZone:'America/Monterrey' })).padStart(2,'0');
+  const anio  = ahora.toLocaleDateString('es-MX', { year:'2-digit', timeZone:'America/Monterrey' });
+  return `${mes}/${anio}-PERR${Date.now().toString().slice(-4)}`;
+}
+
+// Sube fotos a Proveedores/Nombre/dd-MM-yyyy/ con nombres únicos
+// (timestamp en el nombre) para que NUNCA se sobreescriban.
+async function subirFotosProveedor(drive, nombreProveedor, fecha, fotos, prefijoNombre) {
+  if (!fotos || !fotos.length) return;
+  const nombreLimpio = String(nombreProveedor).replace(/[\/\\:*?"<>|]/g, '-').trim();
+  const carpProv  = await getOCrearCarpeta(drive, FOLDER_PROVEDORES, nombreLimpio);
+  const carpFecha = await getOCrearCarpeta(drive, carpProv, fecha.replace(/\//g, '-'));
+  for (let i = 0; i < fotos.length; i++) {
+    if (!fotos[i]?.base64) continue;
+    const nombre = `${prefijoNombre}-${Date.now()}-${i + 1}.jpg`;
+    await subirArchivo(drive, carpFecha, nombre, fotos[i].base64, 'image/jpeg').catch(e => console.error('Foto prov error:', e.message));
+  }
+}
+
+// ── Registrar entrada de proveedor ─────────────────────────────
+app.post('/api/registrar-proveedor', async (req, res) => {
+  try {
+    const datos = req.body;
+    if (!datos.proveedor || !String(datos.proveedor).trim()) {
+      return res.json({ ok: false, error: 'Falta el nombre del proveedor' });
+    }
+    const { sheets, drive } = await getClients();
+    const { fecha, hora } = ahoraMty();
+
+    await asegurarHeadersProv(sheets);
+    const folio = await generarFolioProv(sheets);
+
+    // Foto de factura (si aplica)
+    if (datos.factura === 'Si' && datos.facturaFotos?.length) {
+      await subirFotosProveedor(drive, datos.proveedor, fecha, datos.facturaFotos, 'Factura');
+    }
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID_PROVEDORES, range: 'A:A',
+      valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [[
+        folio, fecha, hora,
+        String(datos.proveedor).trim(),
+        datos.piezas  || '',
+        datos.trabajo || '',
+        datos.factura === 'Si' ? 'Si' : 'No',
+        'ACTIVO', '', '', ''
+      ]] }
+    });
+
+    res.json({ ok: true, folio });
+  } catch(e) { console.error(e); res.json({ ok: false, error: e.message }); }
+});
+
+// ── Listar proveedores activos ──────────────────────────────────
+app.get('/api/proveedores-activos', async (req, res) => {
+  try {
+    const { sheets } = await getClients();
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID_PROVEDORES, range: 'A2:K' });
+    const rows = r.data.values || [];
+    const activos = rows.map((row, i) => ({
+      rowIndex: i + 2,
+      folio:     row[0] || '',
+      fecha:     row[1] || '',
+      hora:      row[2] || '',
+      proveedor: row[3] || '',
+      piezas:    row[4] || '',
+      trabajo:   row[5] || '',
+      estado:    row[7] || '',
+    })).filter(p => p.estado === 'ACTIVO');
+    res.json({ ok: true, proveedores: activos });
+  } catch(e) { console.error(e); res.json({ ok: false, error: e.message }); }
+});
+
+// ── Salida de proveedor: password + trabajo realizado + fotos ──
+app.post('/api/salida-proveedor', async (req, res) => {
+  try {
+    const { rowIndex, password, trabajoRealizado, fotos } = req.body;
+    if (password !== PASS_BAJA) return res.json({ ok: false, error: 'Contrasena incorrecta' });
+    if (!rowIndex) return res.json({ ok: false, error: 'Falta rowIndex' });
+    if (!trabajoRealizado || !String(trabajoRealizado).trim()) {
+      return res.json({ ok: false, error: 'Describe el trabajo realizado' });
+    }
+    if (!fotos || !fotos.length) {
+      return res.json({ ok: false, error: 'Sube al menos una foto de evidencia' });
+    }
+
+    const { sheets, drive } = await getClients();
+    const { fecha, hora } = ahoraMty();
+
+    // Leer la fila para obtener el nombre del proveedor y verificar estado
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID_PROVEDORES, range: `A${rowIndex}:K${rowIndex}`,
+    });
+    const fila = (r.data.values || [])[0];
+    if (!fila) return res.json({ ok: false, error: 'Registro no encontrado' });
+    if (fila[7] !== 'ACTIVO') return res.json({ ok: false, error: 'Este proveedor ya fue dado de baja' });
+    const nombreProveedor = fila[3] || 'SinNombre';
+
+    // Subir evidencias (carpeta del día de salida, nombres únicos)
+    await subirFotosProveedor(drive, nombreProveedor, fecha, fotos, 'Evidencia');
+
+    // Actualizar: Estado, Fecha/Hora Salida, Trabajo Realizado (H:K)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID_PROVEDORES, range: `H${rowIndex}:K${rowIndex}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [['BAJA', fecha, hora, String(trabajoRealizado).trim()]] }
+    });
+
+    res.json({ ok: true });
   } catch(e) { console.error(e); res.json({ ok: false, error: e.message }); }
 });
 

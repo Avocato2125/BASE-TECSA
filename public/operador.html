@@ -256,6 +256,7 @@
   <div class="form-body">
     <div id="formContent">
 
+      <div id="camposGenerales">
       <div class="field">
         <label>Numero de Unidad</label>
         <input type="text" id="unidad" placeholder="Ej. T-042" autocomplete="off" oninput="validar()">
@@ -265,6 +266,7 @@
         <label>Operador</label>
         <input type="text" id="operador" placeholder="Nombre completo" autocomplete="off" oninput="validar()">
       </div>
+      </div>
 
       <div class="field">
         <label>Motivo de permanencia en base</label>
@@ -273,6 +275,7 @@
           <div class="motivo-btn" id="btn-camaras" onclick="seleccionarMotivo('Camaras')"><div class="btn-label">Camaras / Display</div></div>
           <div class="motivo-btn" id="btn-inplant" onclick="seleccionarMotivo('Inplant')"><div class="btn-label">Inplant</div></div>
           <div class="motivo-btn" id="btn-otro"    onclick="seleccionarMotivo('Otro')"><div class="btn-label">Otro</div></div>
+          <div class="motivo-btn" id="btn-proveedor" onclick="seleccionarMotivo('Proveedor')" style="grid-column:1 / -1;"><div class="btn-label">Proveedor Externo</div></div>
         </div>
       </div>
 
@@ -363,6 +366,41 @@
         </div>
       </div>
 
+      <!-- PROVEEDOR EXTERNO -->
+      <div class="seccion-extra" id="secProveedor">
+        <div class="seccion-divider">
+          <div class="seccion-divider-line"></div>
+          <div class="seccion-divider-label">Proveedor Externo</div>
+          <div class="seccion-divider-line"></div>
+        </div>
+        <div class="field">
+          <label>Nombre del Proveedor</label>
+          <input type="text" id="provNombre" placeholder="Nombre de la empresa o persona" autocomplete="off" oninput="validar()">
+        </div>
+        <div class="field">
+          <label>Piezas que va a ingresar</label>
+          <textarea id="provPiezas" placeholder="Describe las piezas que ingresa..." oninput="validar()"></textarea>
+        </div>
+        <div class="field">
+          <label>Trabajo que viene a realizar</label>
+          <textarea id="provTrabajo" placeholder="Describe el trabajo a realizar..." oninput="validar()"></textarea>
+        </div>
+        <div class="field">
+          <label>Trae factura</label>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="motivo-btn" id="btn-factura-si" style="flex:1;padding:10px;" onclick="setFactura('Si')"><div class="btn-label">Si</div></button>
+            <button type="button" class="motivo-btn" id="btn-factura-no" style="flex:1;padding:10px;" onclick="setFactura('No')"><div class="btn-label">No</div></button>
+          </div>
+        </div>
+        <div class="field" id="facturaFotoField" style="display:none;margin-bottom:0;">
+          <label>Foto de la factura</label>
+          <button type="button" class="motivo-btn" style="width:100%;padding:12px;" onclick="document.getElementById('facturaFoto').click()">
+            <div class="btn-label" id="facturaFotoLbl">Tomar / subir foto (0)</div>
+          </button>
+          <input type="file" id="facturaFoto" accept="image/*" capture="environment" multiple style="display:none" onchange="procesarFotosProv(this,'factura')">
+        </div>
+      </div>
+
       <button class="btn-submit" id="btnGuardar" onclick="guardar()" disabled>Registrar Entrada</button>
       <div class="error-msg" id="errorMsg"></div>
     </div>
@@ -383,8 +421,17 @@
     <div class="modal-title">Registrar Salida</div>
     <div class="modal-sub">Selecciona la unidad que sale de la base e ingresa la contrasena.</div>
     <div class="modal-field">
-      <label>Unidad</label>
-      <select id="modalUnidad"><option value="">Cargando...</option></select>
+      <label>Unidad / Proveedor</label>
+      <select id="modalUnidad" onchange="onSalidaSelectChange()"><option value="">Cargando...</option></select>
+    </div>
+    <div class="modal-field" id="modalProvExtra" style="display:none;">
+      <label>Trabajo realizado</label>
+      <textarea id="modalTrabajoRealizado" placeholder="Describe el trabajo realizado..." style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;outline:none;min-height:60px;resize:vertical;"></textarea>
+      <label style="margin-top:12px;">Evidencia (fotos)</label>
+      <button type="button" class="btn-cancelar" style="width:100%;" onclick="document.getElementById('modalProvFotos').click()">
+        <span id="modalProvFotosLbl">Subir fotos (0)</span>
+      </button>
+      <input type="file" id="modalProvFotos" accept="image/*" capture="environment" multiple style="display:none" onchange="procesarFotosProv(this,'salida')">
     </div>
     <div class="modal-field">
       <label>Contrasena</label>
@@ -406,7 +453,67 @@ var motivoSeleccionado = null;
 var areaSeleccionada   = null;
 
 // Todas las secciones disponibles
-var SECCIONES = ['taller','camaras','inplant','otro'];
+var SECCIONES = ['taller','camaras','inplant','otro','proveedor'];
+
+// Estado de proveedor
+var facturaSeleccionada = null;
+var fotosProv = { factura: [], salida: [] };
+
+function setFactura(val) {
+  facturaSeleccionada = val;
+  document.getElementById('btn-factura-si').classList.toggle('selected', val === 'Si');
+  document.getElementById('btn-factura-no').classList.toggle('selected', val === 'No');
+  document.getElementById('facturaFotoField').style.display = val === 'Si' ? 'block' : 'none';
+  if (val === 'No') { fotosProv.factura = []; actualizarLblFotosProv(); }
+  validar();
+}
+
+function actualizarLblFotosProv() {
+  var lblF = document.getElementById('facturaFotoLbl');
+  if (lblF) lblF.textContent = 'Tomar / subir foto (' + fotosProv.factura.length + ')';
+  var lblS = document.getElementById('modalProvFotosLbl');
+  if (lblS) lblS.textContent = 'Subir fotos (' + fotosProv.salida.length + ')';
+}
+
+// Compresión rápida con Canvas nativo (igual que auditoría)
+function comprimirFoto(file) {
+  var MAX_DIM = 1000, QUALITY = 0.6;
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function() {
+        var w = img.width, h = img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          if (w >= h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+          else        { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+        }
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', QUALITY).split(',')[1]);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function procesarFotosProv(input, destino) {
+  var files = input.files;
+  if (!files || !files.length) return;
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var b64 = await comprimirFoto(files[i]);
+      fotosProv[destino].push({ nombre: files[i].name, base64: b64 });
+    } catch(e) { console.error('Error foto:', e); }
+  }
+  input.value = ''; // permitir volver a seleccionar los mismos archivos
+  actualizarLblFotosProv();
+  validar();
+}
 
 function tick() {
   var ahora = new Date();
@@ -421,8 +528,10 @@ setInterval(tick, 1000);
 function seleccionarMotivo(motivo) {
   motivoSeleccionado = motivo;
   // Resaltar boton
-  document.querySelectorAll('.motivo-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.querySelectorAll('.motivo-grid .motivo-btn').forEach(function(b){ b.classList.remove('selected'); });
   document.getElementById('btn-' + motivo.toLowerCase()).classList.add('selected');
+  // Ocultar unidad/operador si es Proveedor (no aplican)
+  document.getElementById('camposGenerales').style.display = motivo === 'Proveedor' ? 'none' : 'block';
   // Mostrar solo la seccion correspondiente
   SECCIONES.forEach(function(s) {
     var sec = document.getElementById('sec' + cap(s));
@@ -453,6 +562,17 @@ function resetCampos(excepto) {
   if (excepto !== 'Otro') {
     document.getElementById('motivoOtro').value = '';
   }
+  if (excepto !== 'Proveedor') {
+    document.getElementById('provNombre').value = '';
+    document.getElementById('provPiezas').value = '';
+    document.getElementById('provTrabajo').value = '';
+    facturaSeleccionada = null;
+    fotosProv.factura = [];
+    document.getElementById('btn-factura-si').classList.remove('selected');
+    document.getElementById('btn-factura-no').classList.remove('selected');
+    document.getElementById('facturaFotoField').style.display = 'none';
+    actualizarLblFotosProv();
+  }
 }
 
 function seleccionarArea(el, valor) {
@@ -465,18 +585,65 @@ function seleccionarArea(el, valor) {
 function validar() {
   var unidad   = document.getElementById('unidad').value.trim();
   var operador = document.getElementById('operador').value.trim();
-  var ok = unidad && operador && motivoSeleccionado;
-  if (motivoSeleccionado === 'Taller') {
-    ok = ok && document.getElementById('plantaTaller').value && areaSeleccionada && document.getElementById('reporteFallaTaller').value.trim();
-  } else if (motivoSeleccionado === 'Camaras') {
-    ok = ok && document.getElementById('plantaCamaras').value && document.getElementById('reporteFallaCamaras').value.trim();
-  } else if (motivoSeleccionado === 'Inplant') {
-    ok = ok && document.getElementById('plantaInplant').value && document.getElementById('motivoInplant').value.trim();
+  var ok;
+  if (motivoSeleccionado === 'Proveedor') {
+    // Proveedor no usa unidad/operador
+    ok = document.getElementById('provNombre').value.trim()
+      && document.getElementById('provPiezas').value.trim()
+      && document.getElementById('provTrabajo').value.trim()
+      && facturaSeleccionada;
+    if (facturaSeleccionada === 'Si') ok = ok && fotosProv.factura.length > 0;
+  } else {
+    ok = unidad && operador && motivoSeleccionado;
+    if (motivoSeleccionado === 'Taller') {
+      ok = ok && document.getElementById('plantaTaller').value && areaSeleccionada && document.getElementById('reporteFallaTaller').value.trim();
+    } else if (motivoSeleccionado === 'Camaras') {
+      ok = ok && document.getElementById('plantaCamaras').value && document.getElementById('reporteFallaCamaras').value.trim();
+    } else if (motivoSeleccionado === 'Inplant') {
+      ok = ok && document.getElementById('plantaInplant').value && document.getElementById('motivoInplant').value.trim();
+    }
   }
   document.getElementById('btnGuardar').disabled = !ok;
 }
 
 async function guardar() {
+  var btn = document.getElementById('btnGuardar');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  document.getElementById('errorMsg').style.display = 'none';
+
+  // ── Flujo Proveedor: endpoint y payload propios ──
+  if (motivoSeleccionado === 'Proveedor') {
+    var datosProv = {
+      proveedor: document.getElementById('provNombre').value.trim(),
+      piezas:    document.getElementById('provPiezas').value.trim(),
+      trabajo:   document.getElementById('provTrabajo').value.trim(),
+      factura:   facturaSeleccionada,
+      facturaFotos: facturaSeleccionada === 'Si' ? fotosProv.factura : []
+    };
+    try {
+      var resP  = await fetch(API_URL + '/api/registrar-proveedor', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosProv)
+      });
+      var rP = await resP.json();
+      if (rP.ok) {
+        document.getElementById('formContent').style.display = 'none';
+        document.getElementById('successPanel').style.display = 'block';
+        document.getElementById('folioResult').textContent = rP.folio || '---';
+        setTimeout(function(){ window.location.reload(); }, 3000);
+      } else {
+        document.getElementById('errorMsg').textContent = 'Error: ' + (rP.error || 'desconocido');
+        document.getElementById('errorMsg').style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Registrar Entrada';
+      }
+    } catch(e) {
+      document.getElementById('errorMsg').textContent = 'Error de conexion: ' + e.message;
+      document.getElementById('errorMsg').style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Registrar Entrada';
+    }
+    return;
+  }
+
   var unidad   = document.getElementById('unidad').value.trim();
   var operador = document.getElementById('operador').value.trim();
   var datos = { unidad:unidad, operador:operador, motivo:motivoSeleccionado };
@@ -496,10 +663,6 @@ async function guardar() {
     var det = document.getElementById('motivoOtro').value.trim();
     if (det) datos.detalle = det;
   }
-
-  var btn = document.getElementById('btnGuardar');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  document.getElementById('errorMsg').style.display = 'none';
 
   try {
     // Usar GET con parametros para poder leer la respuesta (evita problema CORS de POST)
@@ -536,6 +699,7 @@ function nuevoRegistro() {
   motivoSeleccionado = null; areaSeleccionada = null;
   document.getElementById('unidad').value = '';
   document.getElementById('operador').value = '';
+  document.getElementById('camposGenerales').style.display = 'block';
   SECCIONES.forEach(function(s){ document.getElementById('sec'+cap(s)).classList.remove('open'); });
   document.querySelectorAll('.motivo-btn').forEach(function(b){ b.classList.remove('selected'); });
   resetCampos(null);
@@ -552,30 +716,67 @@ async function abrirModalSalida() {
   document.getElementById('modalError').textContent = '';
   document.getElementById('btnConfirmar').disabled = false;
   document.getElementById('btnConfirmar').textContent = 'Confirmar Salida';
+  document.getElementById('modalProvExtra').style.display = 'none';
+  document.getElementById('modalTrabajoRealizado').value = '';
+  fotosProv.salida = [];
+  actualizarLblFotosProv();
   document.getElementById('modalSalida').classList.add('open');
 
   var select = document.getElementById('modalUnidad');
   select.innerHTML = '<option value="">Cargando...</option>';
 
   try {
-    var res  = await fetch(API_URL + '/api/unidades');
-    var data = await res.json();
+    // Cargar unidades y proveedores activos en paralelo
+    var resultados = await Promise.all([
+      fetch(API_URL + '/api/unidades').then(function(r){ return r.json(); }),
+      fetch(API_URL + '/api/proveedores-activos').then(function(r){ return r.json(); }).catch(function(){ return { ok:false }; })
+    ]);
+    var dataU = resultados[0];
+    var dataP = resultados[1];
+
     select.innerHTML = '';
-    if (!data.ok || !data.entradas.length) {
-      select.innerHTML = '<option value="">No hay unidades activas</option>';
+    var hayAlgo = false;
+
+    if (dataU.ok && dataU.entradas.length) {
+      dataU.entradas.forEach(function(u) {
+        var opt = document.createElement('option');
+        opt.value = JSON.stringify({ tipo:'unidad', folio:u.folio, rowIndex:u.rowIndex, rowIndexTaller:u.rowIndexTaller });
+        opt.textContent = u.unidad + '  (' + u.folio + ')';
+        select.appendChild(opt);
+        hayAlgo = true;
+      });
+    }
+    if (dataP.ok && dataP.proveedores && dataP.proveedores.length) {
+      dataP.proveedores.forEach(function(p) {
+        var opt = document.createElement('option');
+        opt.value = JSON.stringify({ tipo:'proveedor', folio:p.folio, rowIndex:p.rowIndex });
+        opt.textContent = 'PROVEEDOR: ' + p.proveedor + '  (' + p.folio + ')';
+        select.appendChild(opt);
+        hayAlgo = true;
+      });
+    }
+    if (!hayAlgo) {
+      select.innerHTML = '<option value="">No hay registros activos</option>';
       return;
     }
-    data.entradas.forEach(function(u) {
-      var opt = document.createElement('option');
-      opt.value = JSON.stringify({ folio:u.folio, rowIndex:u.rowIndex, rowIndexTaller:u.rowIndexTaller });
-      opt.textContent = u.unidad + '  (' + u.folio + ')';
-      select.appendChild(opt);
-    });
+    // Insertar placeholder al inicio
+    var ph = document.createElement('option');
+    ph.value = ''; ph.textContent = '— Selecciona —';
+    select.insertBefore(ph, select.firstChild);
+    select.value = '';
   } catch(e) {
     select.innerHTML = '<option value="">Error al cargar</option>';
   }
 
   setTimeout(function(){ document.getElementById('modalPassword').focus(); }, 200);
+}
+
+// Mostrar campos extra solo cuando la selección es un proveedor
+function onSalidaSelectChange() {
+  var val = document.getElementById('modalUnidad').value;
+  var esProv = false;
+  try { esProv = val && JSON.parse(val).tipo === 'proveedor'; } catch(e) {}
+  document.getElementById('modalProvExtra').style.display = esProv ? 'block' : 'none';
 }
 
 function cerrarModal() {
@@ -590,11 +791,41 @@ async function confirmarSalida() {
   var selectVal = document.getElementById('modalUnidad').value;
   var password  = document.getElementById('modalPassword').value;
   var errEl     = document.getElementById('modalError');
-  if (!selectVal) { errEl.textContent = 'Selecciona una unidad.'; return; }
+  if (!selectVal) { errEl.textContent = 'Selecciona una unidad o proveedor.'; return; }
   if (!password)  { errEl.textContent = 'Ingresa la contrasena.'; return; }
 
   var u   = JSON.parse(selectVal);
   var btn = document.getElementById('btnConfirmar');
+
+  // ── Flujo proveedor: valida trabajo realizado + evidencias ──
+  if (u.tipo === 'proveedor') {
+    var trabajo = document.getElementById('modalTrabajoRealizado').value.trim();
+    if (!trabajo) { errEl.textContent = 'Describe el trabajo realizado.'; return; }
+    if (!fotosProv.salida.length) { errEl.textContent = 'Sube al menos una foto de evidencia.'; return; }
+
+    btn.disabled = true; btn.textContent = 'Procesando...'; errEl.textContent = '';
+    try {
+      var resP  = await fetch(API_URL + '/api/salida-proveedor', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ rowIndex:u.rowIndex, password:password, trabajoRealizado:trabajo, fotos:fotosProv.salida })
+      });
+      var dataP = await resP.json();
+      if (dataP.ok) {
+        cerrarModal();
+        mostrarToastSalida();
+        setTimeout(function(){ window.location.reload(); }, 3000);
+      } else {
+        errEl.textContent = dataP.error || 'Error.';
+        btn.disabled = false; btn.textContent = 'Confirmar Salida';
+      }
+    } catch(e) {
+      errEl.textContent = 'Error de conexion.';
+      btn.disabled = false; btn.textContent = 'Confirmar Salida';
+    }
+    return;
+  }
+
+  // ── Flujo unidad normal ──
   btn.disabled = true; btn.textContent = 'Procesando...'; errEl.textContent = '';
 
   try {
@@ -605,17 +836,8 @@ async function confirmarSalida() {
     var data = await res.json();
     if (data.ok) {
       cerrarModal();
-      var toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#4be88a;color:#0a0f0a;padding:10px 22px;border-radius:8px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
-      toast.textContent = 'Salida registrada';
-      document.body.appendChild(toast);
-      setTimeout(function(){ toast.remove(); }, 3000);
-
-      // --- NUEVO: Recargar la página después de 3 segundos ---
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
-
+      mostrarToastSalida();
+      setTimeout(function(){ window.location.reload(); }, 3000);
     } else {
       errEl.textContent = data.error || 'Error.';
       btn.disabled = false; btn.textContent = 'Confirmar Salida';
@@ -624,6 +846,14 @@ async function confirmarSalida() {
     errEl.textContent = 'Error de conexion.';
     btn.disabled = false; btn.textContent = 'Confirmar Salida';
   }
+}
+
+function mostrarToastSalida() {
+  var toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#4be88a;color:#0a0f0a;padding:10px 22px;border-radius:8px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+  toast.textContent = 'Salida registrada';
+  document.body.appendChild(toast);
+  setTimeout(function(){ toast.remove(); }, 3000);
 }
 </script>
 </body>
