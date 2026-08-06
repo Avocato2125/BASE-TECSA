@@ -143,6 +143,43 @@
     .unidad-banner { margin:16px 16px 0; }
     .punto-nombre { font-size:12px; }
   }
+  /* Modal de Reporte Taller */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.2s; z-index:999; padding:16px;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal-box {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:24px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto;
+    box-shadow:0 24px 80px rgba(0,0,0,0.6);
+  }
+  .modal-title { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; color:var(--accent2); margin-bottom:4px; }
+  .modal-sub   { font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .tags-grid {
+    display:flex; flex-wrap:wrap; gap:8px;
+  }
+  .tag-btn {
+    background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px;
+    padding:8px 14px; font-size:13px; color:var(--muted); cursor:pointer; transition:all 0.15s; user-select:none;
+  }
+  .tag-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+  .tag-btn.selected { background:rgba(75,142,232,0.15); border-color:var(--accent2); color:var(--accent2); font-weight:600; }
+  .modal-actions { display:flex; gap:10px; margin-top:20px; }
+  .btn-cancelar-m {
+    flex:1; background:transparent; border:1px solid var(--border); border-radius:var(--radius);
+    padding:12px; color:var(--muted); font-size:14px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn-cancelar-m:hover { border-color:var(--red); color:var(--red); }
+  .btn-confirmar-m {
+    flex:2; background:var(--accent2); border:none; border-radius:var(--radius);
+    padding:12px; color:#ffffff; font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700;
+    letter-spacing:1px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn-confirmar-m:hover:not(:disabled) { background:#6aa8ff; }
+  .btn-confirmar-m:disabled { opacity:0.4; cursor:not-allowed; }
+  .modal-error-m { font-size:12px; color:var(--red); margin-top:8px; min-height:16px; }
 </style>
 </head>
 <body>
@@ -210,7 +247,46 @@
       <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div class="success-title">Auditoria Generada</div>
       <div class="success-sub">El PDF ha sido guardado correctamente y la unidad fue dada de baja.</div>
+      <button class="btn-submit" style="margin-top:12px;background:var(--accent2);color:#fff;" onclick="abrirModalTaller()">Crear Reporte de Taller</button>
       <button class="btn-nueva" onclick="nuevaAuditoria()">Nueva Auditoria</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REPORTE TALLER -->
+<div class="modal-overlay" id="modalTaller">
+  <div class="modal-box">
+    <div class="modal-title">Reporte de Taller</div>
+    <div class="modal-sub">Registra el trabajo de taller para esta unidad Inplant.</div>
+    <div class="field">
+      <label>Unidad</label>
+      <input type="text" id="rptUnidad" readonly style="opacity:0.6;">
+    </div>
+    <div class="field">
+      <label>Operador</label>
+      <input type="text" id="rptOperador" readonly style="opacity:0.6;">
+    </div>
+    <div class="field">
+      <label>Motivo / Reporte de falla</label>
+      <textarea id="rptMotivo" placeholder="Describe la falla o el trabajo a realizar..." oninput="validarModalTaller()" style="min-height:70px;"></textarea>
+    </div>
+    <div class="field">
+      <label>Areas de servicio</label>
+      <div class="tags-grid" id="rptAreasGrid">
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Servicio Preventivo')">Servicio Preventivo</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Imagen')">Imagen</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Mecanico')">Mecanico</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Vulcanizador')">Vulcanizador</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Electrico')">Electrico</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Soldadura')">Soldadura</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Clima')">Clima</div>
+        <div class="tag-btn" onclick="toggleAreaTaller(this,'Polarizado')">Polarizado</div>
+      </div>
+    </div>
+    <div class="modal-error-m" id="modalTallerError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancelar-m" onclick="cerrarModalTaller()">Cancelar</button>
+      <button class="btn-confirmar-m" id="btnConfirmarTaller" onclick="enviarReporteTaller()" disabled>Registrar</button>
     </div>
   </div>
 </div>
@@ -633,12 +709,17 @@ async function enviarAuditoria() {
     var result = await res.json();
 
     if (result.ok) {
+      // Guardar datos de la unidad para prellenar el modal de taller
+      ultimaUnidadAuditada = {
+        unidad:   datos.unidad,
+        operador: datos.operadorNombreAud || datos.operador || ''
+      };
       datosUnidad = null;
       document.getElementById('buscarSection').style.display = 'none';
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('unidadBanner').style.display = 'none';
       document.getElementById('successPanel').style.display = 'block';
-      setTimeout(function() { window.location.reload(); }, 3000);
+      // No recargamos aquí — el usuario puede crear el reporte de taller antes
     } else {
       errEl.textContent = 'Error: ' + (result.error || 'desconocido');
       errEl.style.display = 'block';
@@ -648,6 +729,99 @@ async function enviarAuditoria() {
     errEl.textContent = 'Error de conexion: ' + e.message;
     errEl.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Generar Auditoria';
+  }
+}
+
+var ultimaUnidadAuditada = null; // guarda unidad/operador para prellenar el modal de taller
+var areasSeleccionadasTaller = [];
+
+// ── Modal Reporte de Taller ────────────────────────────────
+function abrirModalTaller() {
+  var u = ultimaUnidadAuditada || {};
+  document.getElementById('rptUnidad').value   = u.unidad   || '';
+  document.getElementById('rptOperador').value = u.operador || '';
+  document.getElementById('rptMotivo').value   = '';
+  areasSeleccionadasTaller = [];
+  document.querySelectorAll('#rptAreasGrid .tag-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.getElementById('modalTallerError').textContent = '';
+  document.getElementById('btnConfirmarTaller').disabled = true;
+  document.getElementById('btnConfirmarTaller').textContent = 'Registrar';
+  document.getElementById('modalTaller').classList.add('open');
+}
+
+function cerrarModalTaller() {
+  document.getElementById('modalTaller').classList.remove('open');
+}
+
+document.getElementById('modalTaller').addEventListener('click', function(e){
+  if (e.target === this) cerrarModalTaller();
+});
+
+function toggleAreaTaller(el, valor) {
+  el.classList.toggle('selected');
+  areasSeleccionadasTaller = Array.from(
+    document.querySelectorAll('#rptAreasGrid .tag-btn.selected')
+  ).map(function(b){ return b.textContent.trim(); });
+  validarModalTaller();
+}
+
+function validarModalTaller() {
+  var motivo = document.getElementById('rptMotivo').value.trim();
+  var ok = motivo && areasSeleccionadasTaller.length > 0;
+  document.getElementById('btnConfirmarTaller').disabled = !ok;
+}
+
+async function enviarReporteTaller() {
+  var btn    = document.getElementById('btnConfirmarTaller');
+  var errEl  = document.getElementById('modalTallerError');
+  var unidad   = document.getElementById('rptUnidad').value.trim();
+  var operador = document.getElementById('rptOperador').value.trim();
+  var motivo   = document.getElementById('rptMotivo').value.trim();
+
+  if (!motivo || !areasSeleccionadasTaller.length) {
+    errEl.textContent = 'Completa el motivo y selecciona al menos un area.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+  errEl.textContent = '';
+
+  var datos = {
+    unidad:       unidad,
+    operador:     operador,
+    motivo:       'Taller',
+    planta:       '',
+    areaServicio: areasSeleccionadasTaller.join(', '),
+    reporteFalla: motivo
+  };
+
+  try {
+    var res = await fetch(API_URL + '/api/registrar-entrada', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    var result = await res.json();
+    if (result.ok) {
+      cerrarModalTaller();
+      var toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#4b8ee8;color:#fff;padding:10px 22px;border-radius:8px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+      toast.textContent = 'Reporte de Taller registrado: ' + (result.folio || '');
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.remove();
+        window.location.reload();
+      }, 3000);
+    } else {
+      errEl.textContent = 'Error: ' + (result.error || 'desconocido');
+      btn.disabled = false;
+      btn.textContent = 'Registrar';
+    }
+  } catch(e) {
+    errEl.textContent = 'Error de conexion: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = 'Registrar';
   }
 }
 </script>
