@@ -302,9 +302,11 @@
   <!-- BANNER UNIDAD -->
   <div class="unidad-banner" id="unidadBanner" style="display:none;">
     <div class="unidad-num" id="bannerUnidad">—</div>
-    <div class="unidad-info">
+    <div class="unidad-info" style="flex:1;min-width:0;">
       <div id="bannerOperador">—</div>
       <span id="bannerPlanta">—</span>
+      <div id="bannerArea" style="font-size:11px;color:var(--accent2);margin-top:3px;"></div>
+      <div id="bannerMotivo" style="font-size:11px;color:var(--muted);margin-top:2px;font-style:italic;white-space:normal;"></div>
     </div>
     <div class="unidad-folio" id="bannerFolio">—</div>
   </div>
@@ -1029,6 +1031,8 @@ function seleccionarFolio() {
   document.getElementById('bannerOperador').textContent = unidad.operador;
   document.getElementById('bannerPlanta').textContent   = unidad.planta || '—';
   document.getElementById('bannerFolio').textContent    = unidad.folioTaller || unidad.folio;
+  document.getElementById('bannerArea').textContent     = unidad.areaServicio || '';
+  document.getElementById('bannerMotivo').textContent   = unidad.reporteFalla || '';
   document.getElementById('unidadBanner').style.display = 'flex';
   document.getElementById('formContent').style.display  = 'block';
 }
