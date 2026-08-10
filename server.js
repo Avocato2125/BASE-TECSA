@@ -341,23 +341,36 @@ app.post('/api/reporte-taller', async (req, res) => {
     const ll = datos.llantas   || {};
 
     // ── 1. Subir fotos a Drive ────────────────────────────────
-    const carpRaiz   = await getOCrearCarpeta(drive, FOLDER_RAIZ, `Unidad-${datos.unidad}`);
+    console.log(`[Taller] Unidad: ${datos.unidad} | FOLDER_RAIZ: ${FOLDER_RAIZ}`);
+    let carpRaiz;
+    try {
+      carpRaiz = await getOCrearCarpeta(drive, FOLDER_RAIZ, `Unidad-${datos.unidad}`);
+      console.log(`[Taller] Carpeta unidad: ${carpRaiz}`);
+    } catch(errCarp) {
+      console.error('[Taller] ERROR creando carpeta unidad:', errCarp.message);
+      // Continuar sin fotos en vez de fallar todo el reporte
+      carpRaiz = null;
+    }
     const fechaCarp  = fecha.replace(/\//g, '-');
 
     async function subirAreaFotos(area, items) {
-      if (!items || !items.length) return;
-      const carpArea  = await getOCrearCarpeta(drive, carpRaiz, area);
-      const carpFecha = await getOCrearCarpeta(drive, carpArea, fechaCarp);
-      for (const item of items) {
-        if (!item?.fotos) continue;
-        const lista = Array.isArray(item.fotos)
-          ? item.fotos
-          : [...(item.fotos.antes||[]).map(f=>({...f,nombre:'antes-'+f.nombre})),
-             ...(item.fotos.despues||[]).map(f=>({...f,nombre:'despues-'+f.nombre}))];
-        for (const f of lista) {
-          if (!f?.base64) continue;
-          await subirArchivo(drive, carpFecha, f.nombre||'foto.jpg', f.base64, 'image/jpeg').catch(()=>{});
+      if (!carpRaiz || !items || !items.length) return;
+      try {
+        const carpArea  = await getOCrearCarpeta(drive, carpRaiz, area);
+        const carpFecha = await getOCrearCarpeta(drive, carpArea, fechaCarp);
+        for (const item of items) {
+          if (!item?.fotos) continue;
+          const lista = Array.isArray(item.fotos)
+            ? item.fotos
+            : [...(item.fotos.antes||[]).map(f=>({...f,nombre:'antes-'+f.nombre})),
+               ...(item.fotos.despues||[]).map(f=>({...f,nombre:'despues-'+f.nombre}))];
+          for (const f of lista) {
+            if (!f?.base64) continue;
+            await subirArchivo(drive, carpFecha, f.nombre||'foto.jpg', f.base64, 'image/jpeg').catch(()=>{});
+          }
         }
+      } catch(errArea) {
+        console.error(`[Taller] ERROR subiendo fotos de ${area}:`, errArea.message);
       }
     }
 
