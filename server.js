@@ -162,19 +162,35 @@ async function getOCrearCarpeta(drive, padreId, nombre) {
 }
 
 // ── Drive: subir archivo ─────────────────────────────────────────
+// Con reintentos: Drive rechaza ráfagas de subidas (rate limit 403/429).
+// Espera creciente entre intentos para que la foto siempre llegue.
 async function subirArchivo(drive, carpetaId, nombre, base64, mimeType) {
   if (!carpetaId) throw new Error('subirArchivo: carpetaId es undefined para archivo "' + nombre + '"');
-  console.log(`Subiendo "${nombre}" a carpeta ${carpetaId}`);
   const buffer = Buffer.from(base64, 'base64');
-  const stream = Readable.from(buffer);
-  const res = await drive.files.create({
-    requestBody: { name: nombre, parents: [carpetaId] },
-    media: { mimeType, body: stream },
-    fields: 'id,webViewLink',
-    supportsAllDrives: true,
-  });
-  console.log(`Archivo subido: ${res.data.id}`);
-  return res.data;
+  const MAX_INTENTOS = 4;
+  let ultimoError;
+  for (let intento = 0; intento < MAX_INTENTOS; intento++) {
+    if (intento > 0) {
+      const espera = 500 * Math.pow(2, intento - 1) + Math.random() * 300; // 500ms, 1s, 2s
+      await new Promise(r => setTimeout(r, espera));
+      console.log(`[Drive] Reintento ${intento + 1} para "${nombre}"`);
+    }
+    try {
+      const stream = Readable.from(buffer);
+      const res = await drive.files.create({
+        requestBody: { name: nombre, parents: [carpetaId] },
+        media: { mimeType, body: stream },
+        fields: 'id,webViewLink',
+        supportsAllDrives: true,
+      });
+      console.log(`[Drive] Subido "${nombre}" → ${res.data.id}`);
+      return res.data;
+    } catch(e) {
+      ultimoError = e;
+      console.error(`[Drive] Error subiendo "${nombre}" (intento ${intento + 1}):`, e.message);
+    }
+  }
+  throw ultimoError;
 }
 
 // ── Calcular días en base ───────────────────────────────────────
@@ -366,7 +382,11 @@ app.post('/api/reporte-taller', async (req, res) => {
                ...(item.fotos.despues||[]).map(f=>({...f,nombre:'despues-'+f.nombre}))];
           for (const f of lista) {
             if (!f?.base64) continue;
-            await subirArchivo(drive, carpFecha, f.nombre||'foto.jpg', f.base64, 'image/jpeg').catch(()=>{});
+            try {
+              await subirArchivo(drive, carpFecha, f.nombre||'foto.jpg', f.base64, 'image/jpeg');
+            } catch(eFoto) {
+              console.error(`[Taller] Foto perdida en ${area}: ${f.nombre} — ${eFoto.message}`);
+            }
           }
         }
       } catch(errArea) {
@@ -374,21 +394,46 @@ app.post('/api/reporte-taller', async (req, res) => {
       }
     }
 
-    await Promise.allSettled([
-      t.aceite    && subirAreaFotos('Aceite',           [t.aceite]),
-      t.frenos    && subirAreaFotos('Frenos',           [t.frenos]),
-      t.servicio?.engrasado && subirAreaFotos('Engrasado', [t.servicio.engrasado]),
-      t.servicio?.aceite    && subirAreaFotos('Aceite-Servicio', [t.servicio.aceite]),
-      t.afinacion && subirAreaFotos('Afinacion',        [t.afinacion]),
-      el.cargaBat  && subirAreaFotos('Carga-Bateria',   [el.cargaBat]),
-      el.cambioBat && subirAreaFotos('Cambio-Bateria',  [el.cambioBat]),
-      im.calcas    && subirAreaFotos('Calcas',          [im.calcas]),
-      im.asiento   && subirAreaFotos('Asiento',         [im.asiento]),
-      im.pintura   && subirAreaFotos('Pintura',         [im.pintura]),
-      im.soldadura && subirAreaFotos('Soldadura',       [im.soldadura]),
-      ll.cambio    && subirAreaFotos('Llanta-Cambio',   [ll.cambio]),
-      ll.reparacion && subirAreaFotos('Llanta-Reparacion', [ll.reparacion]),
-    ]);
+    // Subida SECUENCIAL (no en paralelo): Drive rechaza ráfagas de
+    // peticiones simultáneas con rate limit y las fotos se perdían.
+    if (t.aceite)    await subirAreaFotos('Aceite',    [t.aceite]);
+    if (t.frenos)    await subirAreaFotos('Frenos',    [t.frenos]);
+    if (t.servicio?.engrasado) await subirAreaFotos('Engrasado', [t.servicio.engrasado]);
+    if (t.servicio?.aceite)    await subirAreaFotos('Aceite-Servicio', [t.servicio.aceite]);
+    // Filtros (faltaban en la migración a Node)
+    if (t.servicio?.filtros) {
+      const filtros = t.servicio.filtros;
+      for (const k of Object.keys(filtros)) {
+        if (filtros[k]?.cambiado && filtros[k]?.fotos) {
+          await subirAreaFotos('Filtro-' + k, [filtros[k]]);
+        }
+      }
+    }
+    if (t.afinacion) await subirAreaFotos('Afinacion', [t.afinacion]);
+    // Piezas de taller (faltaban en la migración a Node)
+    if (t.piezas?.length) {
+      for (let i = 0; i < t.piezas.length; i++) {
+        await subirAreaFotos(`Pieza-Taller-${i+1}-${(t.piezas[i].nombre||'').replace(/[\/\\:*?"<>|]/g,'-')}`, [t.piezas[i]]);
+      }
+    }
+    if (el.cargaBat)  await subirAreaFotos('Carga-Bateria',  [el.cargaBat]);
+    if (el.cambioBat) await subirAreaFotos('Cambio-Bateria', [el.cambioBat]);
+    if (el.piezas?.length) {
+      for (let i = 0; i < el.piezas.length; i++) {
+        await subirAreaFotos(`Pieza-Electrico-${i+1}-${(el.piezas[i].nombre||'').replace(/[\/\\:*?"<>|]/g,'-')}`, [el.piezas[i]]);
+      }
+    }
+    if (im.calcas)    await subirAreaFotos('Calcas',    [im.calcas]);
+    if (im.asiento)   await subirAreaFotos('Asiento',   [im.asiento]);
+    if (im.pintura)   await subirAreaFotos('Pintura',   [im.pintura]);
+    if (im.soldadura) await subirAreaFotos('Soldadura', [im.soldadura]);
+    if (im.piezas?.length) {
+      for (let i = 0; i < im.piezas.length; i++) {
+        await subirAreaFotos(`Pieza-Imagen-${i+1}-${(im.piezas[i].nombre||'').replace(/[\/\\:*?"<>|]/g,'-')}`, [im.piezas[i]]);
+      }
+    }
+    if (ll.cambio)     await subirAreaFotos('Llanta-Cambio',     [ll.cambio]);
+    if (ll.reparacion) await subirAreaFotos('Llanta-Reparacion', [ll.reparacion]);
 
     // ── 2. Guardar en hojas separadas por área ────────────────
     const comun = [datos.folioEntrada, fecha, hora, datos.unidad, datos.operador, datos.planta, datos.areaServicio, datos.mecanico];
@@ -618,17 +663,20 @@ app.post('/api/auditoria', async (req, res) => {
     const carpUnidad = await getOCrearCarpeta(drive, FOLDER_AUDITORIAS, `Unidad-${datos.unidad}`);
     const carpFecha  = await getOCrearCarpeta(drive, carpUnidad, fechaCarp);
 
-    // ── 2. Subir fotos de cada punto ─────────────────────────
-    const subirFotos = (datos.puntos || []).map(async p => {
-      if (!p.fotos || !p.fotos.length) return;
+    // ── 2. Subir fotos de cada punto (secuencial, evita rate limit) ─
+    for (const p of (datos.puntos || [])) {
+      if (!p.fotos || !p.fotos.length) continue;
       const nombreBase = (p.nombre||'punto').replace(/[\/\\:*?"<>|]/g, '-');
       for (let i = 0; i < p.fotos.length; i++) {
         if (!p.fotos[i]?.base64) continue;
         const nombre = i === 0 ? `${nombreBase}.jpg` : `${nombreBase}-${i+1}.jpg`;
-        await subirArchivo(drive, carpFecha, nombre, p.fotos[i].base64, 'image/jpeg').catch(()=>{});
+        try {
+          await subirArchivo(drive, carpFecha, nombre, p.fotos[i].base64, 'image/jpeg');
+        } catch(eFoto) {
+          console.error(`[Auditoria] Foto perdida "${nombre}": ${eFoto.message}`);
+        }
       }
-    });
-    await Promise.allSettled(subirFotos);
+    }
 
     // ── 3. Generar PDF con PDFKit ────────────────────────────
     const pdfBuffer = await generarPDFAuditoria(datos, fecha);
