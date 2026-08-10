@@ -1259,44 +1259,62 @@ async function enviarReporte() {
   if (!datosUnidad) { mostrarError('Busca una unidad primero.'); return; }
 
   // ── Validación: secciones y Si/No ───────────────────────
-  // Mapa de cada sección con sus Si/No y campos requeridos cuando es "Si"
+  // Mapa de cada sección con sus Si/No, campos requeridos y fotos
+  // obligatorias (fotoBase = par antes/despues) cuando es "Si"
   var SECCIONES_VALIDAR = [
     {
       id: 'taller', nombre: 'Taller Mecanico',
       items: [
-        { sino: 'aceite',    label: 'Aceite',    camposReq: ['aceite-km','aceite-cap','aceite-lit-ant','aceite-lit-nuevo'], sinosReq: ['nivel-bajo'] },
-        { sino: 'frenos',    label: 'Frenos',    camposReq: [] },
+        { sino: 'aceite',    label: 'Aceite',    camposReq: ['aceite-km','aceite-cap','aceite-lit-ant','aceite-lit-nuevo'], sinosReq: ['nivel-bajo'], fotoBase: 'foto-aceite' },
+        { sino: 'frenos',    label: 'Frenos',    camposReq: [], fotoBase: 'foto-frenos' },
         { sino: 'servicio',  label: 'Servicio',  camposReq: [], sinosReq: ['engrasado','srv-aceite','filtros'] },
-        { sino: 'afinacion', label: 'Afinacion', camposReq: ['afinacion-km'] },
-        { sino: 'piezas-tal',label: 'Piezas',    camposReq: [] },
+        { sino: 'afinacion', label: 'Afinacion', camposReq: ['afinacion-km'], fotoBase: 'foto-afinacion' },
+        { sino: 'piezas-tal',label: 'Piezas',    camposReq: [], piezasArea: 'tal' },
       ]
     },
     {
       id: 'electrico', nombre: 'Electrico',
       items: [
         { sino: 'carga-bat',  label: 'Carga de Bateria',  camposReq: ['volt-ant','volt-nuevo'] },
-        { sino: 'cambio-bat', label: 'Cambio de Bateria', camposReq: ['motivo-bat'] },
-        { sino: 'piezas-elec',label: 'Piezas',            camposReq: [] },
+        { sino: 'cambio-bat', label: 'Cambio de Bateria', camposReq: ['motivo-bat'], fotoBase: 'foto-bat-cambio' },
+        { sino: 'piezas-elec',label: 'Piezas',            camposReq: [], piezasArea: 'elec' },
       ]
     },
     {
       id: 'imagen', nombre: 'Imagen',
       items: [
-        { sino: 'calcas',    label: 'Calcas',    camposReq: ['calcas-mat'] },
-        { sino: 'asiento',   label: 'Asiento',   camposReq: ['asiento-mat'] },
-        { sino: 'pintura',   label: 'Pintura',   camposReq: ['pintura-area','pintura-mat'] },
-        { sino: 'soldadura', label: 'Soldadura', camposReq: ['soldadura-mat'] },
-        { sino: 'piezas-img',label: 'Piezas',    camposReq: [] },
+        { sino: 'calcas',    label: 'Calcas',    camposReq: ['calcas-mat'],    fotoBase: 'foto-calcas' },
+        { sino: 'asiento',   label: 'Asiento',   camposReq: ['asiento-mat'],   fotoBase: 'foto-asiento' },
+        { sino: 'pintura',   label: 'Pintura',   camposReq: ['pintura-area','pintura-mat'], fotoBase: 'foto-pintura' },
+        { sino: 'soldadura', label: 'Soldadura', camposReq: ['soldadura-mat'], fotoBase: 'foto-soldadura' },
+        { sino: 'piezas-img',label: 'Piezas',    camposReq: [], piezasArea: 'img' },
       ]
     },
     {
       id: 'llantas', nombre: 'Llantas',
       items: [
-        { sino: 'cambio-llanta', label: 'Cambio de Llanta',    camposReq: ['llanta-marca'] },
-        { sino: 'rep-llanta',    label: 'Reparacion de Llanta', camposReq: ['llanta-vida'] },
+        { sino: 'cambio-llanta', label: 'Cambio de Llanta',    camposReq: ['llanta-marca'], fotoBase: 'foto-llanta' },
+        { sino: 'rep-llanta',    label: 'Reparacion de Llanta', camposReq: ['llanta-vida'], fotoBase: 'foto-rep-llanta' },
       ]
     },
   ];
+
+  // Helpers de validación de fotos (leen directo los file inputs)
+  function numFotos(inputId) {
+    var inp = document.getElementById(inputId);
+    return inp && inp.files ? inp.files.length : 0;
+  }
+  function faltaFotoPar(base) {
+    // Requiere al menos 1 foto de ANTES y 1 de DESPUES
+    if (numFotos(base + '-antes')   === 0) return 'Antes';
+    if (numFotos(base + '-despues') === 0) return 'Despues';
+    return null;
+  }
+  function errorFoto(seccion, item, cual, scrollId) {
+    mostrarError('En "' + seccion + ' → ' + item + '" falta la foto de ' + cual + '. Las fotos son obligatorias.');
+    var el = document.getElementById(scrollId);
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
 
   for (var s = 0; s < SECCIONES_VALIDAR.length; s++) {
     var sec = SECCIONES_VALIDAR[s];
@@ -1325,13 +1343,83 @@ async function enviarReporte() {
             return;
           }
         }
-        // 3. Si tiene sub-Si/No requeridos, validarlos también
+
+        // 3. Fotos obligatorias del apartado (par antes/despues)
+        if (item.fotoBase) {
+          var faltante = faltaFotoPar(item.fotoBase);
+          if (faltante) {
+            errorFoto(sec.nombre, item.label, faltante, item.fotoBase + '-antes');
+            return;
+          }
+        }
+
+        // 4. Si tiene sub-Si/No requeridos, validarlos también
         if (item.sinosReq) {
           for (var sr = 0; sr < item.sinosReq.length; sr++) {
-            var subVal = estadoSino[item.sinosReq[sr]];
+            var subId  = item.sinosReq[sr];
+            var subVal = estadoSino[subId];
             if (!subVal) {
               mostrarError('En "' + sec.nombre + ' → ' + item.label + '" debes responder Si o No en todos los sub-apartados.');
               document.getElementById('cond-' + item.sino) && document.getElementById('cond-' + item.sino).scrollIntoView({ behavior:'smooth', block:'center' });
+              return;
+            }
+            // Sub-apartados con Si: fotos obligatorias
+            if (subVal === 'si') {
+              if (subId === 'engrasado' || subId === 'srv-aceite') {
+                var baseSub  = subId === 'engrasado' ? 'foto-engrasado' : 'foto-srv-aceite';
+                var faltSub  = faltaFotoPar(baseSub);
+                if (faltSub) {
+                  errorFoto(sec.nombre, item.label + ' → ' + subId, faltSub, baseSub + '-antes');
+                  return;
+                }
+              }
+              if (subId === 'filtros') {
+                // Cada filtro respondido y, si es Si, con evidencia obligatoria
+                for (var fi = 0; fi < FILTROS.length; fi++) {
+                  var f = FILTROS[fi];
+                  var fVal = estadoSino[f.id];
+                  if (!fVal) {
+                    mostrarError('En "Filtros" debes responder Si o No en: ' + f.label);
+                    document.getElementById('filtrosGrid').scrollIntoView({ behavior:'smooth', block:'center' });
+                    return;
+                  }
+                  if (fVal === 'si' && numFotos('foto-' + f.id) === 0) {
+                    mostrarError('En "' + f.label + '" falta la foto de evidencia. Las fotos son obligatorias.');
+                    document.getElementById('filtrosGrid').scrollIntoView({ behavior:'smooth', block:'center' });
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 5. Piezas: al menos una pieza completa con nombre, material y fotos
+        if (item.piezasArea) {
+          var listaP = document.getElementById('piezas-' + item.piezasArea + '-lista');
+          var itemsP = listaP ? listaP.querySelectorAll(':scope > div.pieza-item') : [];
+          if (!itemsP.length) {
+            mostrarError('En "' + sec.nombre + ' → Piezas" marcaste Si pero no agregaste ninguna pieza.');
+            if (listaP) listaP.scrollIntoView({ behavior:'smooth', block:'center' });
+            return;
+          }
+          for (var pi = 0; pi < itemsP.length; pi++) {
+            var pid    = itemsP[pi].id;
+            var pNom   = document.getElementById(pid + '-nombre');
+            var pMat   = document.getElementById(pid + '-mat');
+            if (!pNom || !pNom.value.trim()) {
+              mostrarError('En "' + sec.nombre + ' → Pieza ' + (pi+1) + '" el nombre de la pieza es obligatorio.');
+              itemsP[pi].scrollIntoView({ behavior:'smooth', block:'center' });
+              return;
+            }
+            if (!pMat || !pMat.value.trim()) {
+              mostrarError('En "' + sec.nombre + ' → Pieza ' + (pi+1) + '" los materiales usados son obligatorios.');
+              itemsP[pi].scrollIntoView({ behavior:'smooth', block:'center' });
+              return;
+            }
+            var faltP = faltaFotoPar(pid + '-foto');
+            if (faltP) {
+              errorFoto(sec.nombre, 'Pieza ' + (pi+1), faltP, pid);
               return;
             }
           }
