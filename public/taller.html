@@ -551,6 +551,30 @@
 
           <hr class="divider">
 
+          <!-- Ajuste -->
+          <div class="field">
+            <label>Ajuste</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'ajuste','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'ajuste','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-ajuste">
+              <div class="sub-label">Detalles — Ajuste</div>
+              <div class="field"><label>Tipo de pieza</label><input type="text" id="ajuste-pieza" placeholder="Pieza que se ajusto"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-ajuste">
+                <input type="file" id="foto-ajuste" accept="image/*" multiple onchange="onFotoChange(this,'foto-ajuste')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-ajuste">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="ajuste-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
           <!-- Cambio de piezas mecánico -->
           <div class="field">
             <label>Cambio de Piezas</label>
@@ -894,6 +918,155 @@
           <div class="field" style="margin-top:4px;">
             <label>Observaciones Generales — Llantas</label>
             <textarea id="obs-llantas" placeholder="Observaciones generales del area de llantas..."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           ÁREA: RELLENADOS
+      ══════════════════════════════════════════ -->
+      <div class="seccion" id="sec-llenado">
+        <div class="seccion-header" onclick="toggleSeccion('llenado')">
+          <div class="seccion-titulo">
+            <div class="seccion-check" id="check-llenado"></div>
+            Rellenados
+          </div>
+          <div class="seccion-arrow" id="arrow-llenado">&#9660;</div>
+        </div>
+        <div class="seccion-body" id="body-llenado">
+
+          <!-- Aceite -->
+          <div class="field">
+            <label>Aceite</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rell-aceite','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rell-aceite','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rell-aceite">
+              <div class="sub-label">Detalles — Rellenado de Aceite</div>
+              <div class="field"><label>Litros que tiene la unidad</label><input type="number" step="0.1" id="rell-aceite-ant" placeholder="Litros antes del llenado"></div>
+              <div class="field"><label>Litros que se le pusieron</label><input type="number" step="0.1" id="rell-aceite-puestos" placeholder="Litros agregados"></div>
+              <div class="field"><label>Litros despues del llenado</label><input type="number" step="0.1" id="rell-aceite-despues" placeholder="Litros al terminar"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rell-aceite">
+                <input type="file" id="foto-rell-aceite" accept="image/*" multiple onchange="onFotoChange(this,'foto-rell-aceite')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-rell-aceite">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rell-aceite-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Adblue -->
+          <div class="field">
+            <label>Adblue</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rell-adblue','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rell-adblue','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rell-adblue">
+              <div class="sub-label">Detalles — Rellenado de Adblue</div>
+              <div class="field"><label>Litros que tiene la unidad</label><input type="number" step="0.1" id="rell-adblue-ant" placeholder="Litros antes del llenado"></div>
+              <div class="field"><label>Litros que se le pusieron</label><input type="number" step="0.1" id="rell-adblue-puestos" placeholder="Litros agregados"></div>
+              <div class="field"><label>Litros despues del llenado</label><input type="number" step="0.1" id="rell-adblue-despues" placeholder="Litros al terminar"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rell-adblue">
+                <input type="file" id="foto-rell-adblue" accept="image/*" multiple onchange="onFotoChange(this,'foto-rell-adblue')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-rell-adblue">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rell-adblue-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Liquido de Frenos -->
+          <div class="field">
+            <label>Liquido de Frenos</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rell-frenos','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rell-frenos','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rell-frenos">
+              <div class="sub-label">Detalles — Rellenado de Liquido de Frenos</div>
+              <div class="field"><label>Litros que tiene la unidad</label><input type="number" step="0.1" id="rell-frenos-ant" placeholder="Litros antes del llenado"></div>
+              <div class="field"><label>Litros que se le pusieron</label><input type="number" step="0.1" id="rell-frenos-puestos" placeholder="Litros agregados"></div>
+              <div class="field"><label>Litros despues del llenado</label><input type="number" step="0.1" id="rell-frenos-despues" placeholder="Litros al terminar"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rell-frenos">
+                <input type="file" id="foto-rell-frenos" accept="image/*" multiple onchange="onFotoChange(this,'foto-rell-frenos')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-rell-frenos">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rell-frenos-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Anticongelante -->
+          <div class="field">
+            <label>Anticongelante</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rell-anti','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rell-anti','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rell-anti">
+              <div class="sub-label">Detalles — Rellenado de Anticongelante</div>
+              <div class="field"><label>Litros que tiene la unidad</label><input type="number" step="0.1" id="rell-anti-ant" placeholder="Litros antes del llenado"></div>
+              <div class="field"><label>Litros que se le pusieron</label><input type="number" step="0.1" id="rell-anti-puestos" placeholder="Litros agregados"></div>
+              <div class="field"><label>Litros despues del llenado</label><input type="number" step="0.1" id="rell-anti-despues" placeholder="Litros al terminar"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rell-anti">
+                <input type="file" id="foto-rell-anti" accept="image/*" multiple onchange="onFotoChange(this,'foto-rell-anti')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-rell-anti">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rell-anti-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Gasolina -->
+          <div class="field">
+            <label>Gasolina</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rell-gasolina','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rell-gasolina','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rell-gasolina">
+              <div class="sub-label">Detalles — Rellenado de Gasolina</div>
+              <div class="field"><label>Litros que tiene la unidad</label><input type="number" step="0.1" id="rell-gasolina-ant" placeholder="Litros antes del llenado"></div>
+              <div class="field"><label>Litros que se le pusieron</label><input type="number" step="0.1" id="rell-gasolina-puestos" placeholder="Litros agregados"></div>
+              <div class="field"><label>Litros despues del llenado</label><input type="number" step="0.1" id="rell-gasolina-despues" placeholder="Litros al terminar"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rell-gasolina">
+                <input type="file" id="foto-rell-gasolina" accept="image/*" multiple onchange="onFotoChange(this,'foto-rell-gasolina')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-rell-gasolina">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rell-gasolina-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Observaciones Generales — Rellenados</label>
+            <textarea id="obs-llenado" placeholder="Observaciones generales de rellenados..."></textarea>
           </div>
 
         </div>
@@ -1269,6 +1442,7 @@ async function enviarReporte() {
         { sino: 'frenos',    label: 'Frenos',    camposReq: [], fotoBase: 'foto-frenos' },
         { sino: 'servicio',  label: 'Servicio',  camposReq: [], sinosReq: ['engrasado','srv-aceite','filtros'] },
         { sino: 'afinacion', label: 'Afinacion', camposReq: ['afinacion-km'], fotoBase: 'foto-afinacion' },
+        { sino: 'ajuste',    label: 'Ajuste',    camposReq: ['ajuste-pieza'], fotoSingle: 'foto-ajuste' },
         { sino: 'piezas-tal',label: 'Piezas',    camposReq: [], piezasArea: 'tal' },
       ]
     },
@@ -1295,6 +1469,16 @@ async function enviarReporte() {
       items: [
         { sino: 'cambio-llanta', label: 'Cambio de Llanta',    camposReq: ['llanta-marca'], fotoBase: 'foto-llanta' },
         { sino: 'rep-llanta',    label: 'Reparacion de Llanta', camposReq: ['llanta-vida'], fotoBase: 'foto-rep-llanta' },
+      ]
+    },
+    {
+      id: 'llenado', nombre: 'Rellenados',
+      items: [
+        { sino: 'rell-aceite',   label: 'Aceite',            camposReq: ['rell-aceite-ant','rell-aceite-puestos','rell-aceite-despues'],       fotoSingle: 'foto-rell-aceite' },
+        { sino: 'rell-adblue',   label: 'Adblue',            camposReq: ['rell-adblue-ant','rell-adblue-puestos','rell-adblue-despues'],       fotoSingle: 'foto-rell-adblue' },
+        { sino: 'rell-frenos',   label: 'Liquido de Frenos', camposReq: ['rell-frenos-ant','rell-frenos-puestos','rell-frenos-despues'],       fotoSingle: 'foto-rell-frenos' },
+        { sino: 'rell-anti',     label: 'Anticongelante',    camposReq: ['rell-anti-ant','rell-anti-puestos','rell-anti-despues'],             fotoSingle: 'foto-rell-anti' },
+        { sino: 'rell-gasolina', label: 'Gasolina',          camposReq: ['rell-gasolina-ant','rell-gasolina-puestos','rell-gasolina-despues'], fotoSingle: 'foto-rell-gasolina' },
       ]
     },
   ];
@@ -1351,6 +1535,11 @@ async function enviarReporte() {
             errorFoto(sec.nombre, item.label, faltante, item.fotoBase + '-antes');
             return;
           }
+        }
+        // 3b. Foto única de evidencia obligatoria
+        if (item.fotoSingle && numFotos(item.fotoSingle) === 0) {
+          errorFoto(sec.nombre, item.label, 'Evidencia', item.fotoSingle);
+          return;
         }
 
         // 4. Si tiene sub-Si/No requeridos, validarlos también
@@ -1485,6 +1674,11 @@ async function enviarReporte() {
           fotos:     await procesarFotosPar('foto-afinacion'),
           obs:       val('afin-obs')
         } : null,
+        ajuste: estadoSino['ajuste'] === 'si' ? {
+          pieza: val('ajuste-pieza'),
+          fotos: await procesarInputFotos('foto-ajuste'),
+          obs:   val('ajuste-obs')
+        } : null,
         piezas:   await recolectarPiezas('tal'),
         obsGral:  val('obs-taller')
       },
@@ -1551,6 +1745,47 @@ async function enviarReporte() {
           obs:          val('rep-llanta-obs')
         } : null,
         obsGral: val('obs-llantas')
+      },
+
+      // RELLENADOS
+      llenado: {
+        activo: document.getElementById('body-llenado').classList.contains('open'),
+        aceite: estadoSino['rell-aceite'] === 'si' ? {
+          litAnt:     val('rell-aceite-ant'),
+          litPuestos: val('rell-aceite-puestos'),
+          litDespues: val('rell-aceite-despues'),
+          fotos:      await procesarInputFotos('foto-rell-aceite'),
+          obs:        val('rell-aceite-obs')
+        } : null,
+        adblue: estadoSino['rell-adblue'] === 'si' ? {
+          litAnt:     val('rell-adblue-ant'),
+          litPuestos: val('rell-adblue-puestos'),
+          litDespues: val('rell-adblue-despues'),
+          fotos:      await procesarInputFotos('foto-rell-adblue'),
+          obs:        val('rell-adblue-obs')
+        } : null,
+        liqFrenos: estadoSino['rell-frenos'] === 'si' ? {
+          litAnt:     val('rell-frenos-ant'),
+          litPuestos: val('rell-frenos-puestos'),
+          litDespues: val('rell-frenos-despues'),
+          fotos:      await procesarInputFotos('foto-rell-frenos'),
+          obs:        val('rell-frenos-obs')
+        } : null,
+        anticongelante: estadoSino['rell-anti'] === 'si' ? {
+          litAnt:     val('rell-anti-ant'),
+          litPuestos: val('rell-anti-puestos'),
+          litDespues: val('rell-anti-despues'),
+          fotos:      await procesarInputFotos('foto-rell-anti'),
+          obs:        val('rell-anti-obs')
+        } : null,
+        gasolina: estadoSino['rell-gasolina'] === 'si' ? {
+          litAnt:     val('rell-gasolina-ant'),
+          litPuestos: val('rell-gasolina-puestos'),
+          litDespues: val('rell-gasolina-despues'),
+          fotos:      await procesarInputFotos('foto-rell-gasolina'),
+          obs:        val('rell-gasolina-obs')
+        } : null,
+        obsGral: val('obs-llenado')
       }
     };
 
