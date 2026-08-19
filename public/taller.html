@@ -924,6 +924,109 @@
       </div>
 
       <!-- ══════════════════════════════════════════
+           ÁREA: SUSPENSIÓN
+      ══════════════════════════════════════════ -->
+      <div class="seccion" id="sec-susp">
+        <div class="seccion-header" onclick="toggleSeccion('susp')">
+          <div class="seccion-titulo">
+            <div class="seccion-check" id="check-susp"></div>
+            Suspension
+          </div>
+          <div class="seccion-arrow" id="arrow-susp">&#9660;</div>
+        </div>
+        <div class="seccion-body" id="body-susp">
+
+          <!-- Cambio de muelles -->
+          <div class="field">
+            <label>Cambio de Muelles</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'muelles','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'muelles','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-muelles">
+              <div class="sub-label">Detalles — Cambio de Muelles</div>
+              <div class="field"><label>Hoja(s) cambiada(s) — si son las 5 es muelle completo</label>
+                <div class="sino-row" style="flex-wrap:wrap;gap:8px;">
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">1</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">2</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">3</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">4</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">5</button>
+                </div>
+                <div id="muellesCompletoLbl" style="display:none;font-size:12px;color:var(--green);margin-top:6px;">Muelle completo (5 hojas)</div>
+              </div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-muelles-antes">
+                <input type="file" id="foto-muelles-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-muelles-antes')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-muelles-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-muelles-despues">
+                <input type="file" id="foto-muelles-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-muelles-despues')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-muelles-despues">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="muelles-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Amortiguadores -->
+          <div class="field">
+            <label>Amortiguadores</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'amortiguadores','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'amortiguadores','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-amortiguadores">
+              <div class="sub-label">Detalles — Amortiguadores</div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-amort-antes">
+                <input type="file" id="foto-amort-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-amort-antes')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Antes</div>
+                <div class="foto-slot-count" id="cnt-foto-amort-antes">0 fotos</div>
+              </div>
+              <div class="foto-slot" id="slot-foto-amort-despues">
+                <input type="file" id="foto-amort-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-amort-despues')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Despues</div>
+                <div class="foto-slot-count" id="cnt-foto-amort-despues">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="amort-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Cambio de piezas suspensión -->
+          <div class="field">
+            <label>Cambio de Piezas</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'piezas-susp','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'piezas-susp','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-piezas-susp">
+              <div class="sub-label">Detalles — Cambio de Piezas</div>
+              <div id="piezas-susp-lista"></div>
+              <button type="button" onclick="agregarPieza('susp')" style="margin-top:8px;background:transparent;border:1px dashed var(--border);border-radius:8px;padding:8px 16px;color:var(--muted);cursor:pointer;font-size:13px;width:100%;font-family:'Inter',sans-serif;">+ Agregar pieza</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:4px;">
+            <label>Observaciones Generales — Suspension</label>
+            <textarea id="obs-susp" placeholder="Observaciones generales de suspension..."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
            ÁREA: RELLENADOS
       ══════════════════════════════════════════ -->
       <div class="seccion" id="sec-llenado">
@@ -1064,6 +1167,32 @@
             </div>
           </div>
 
+          <hr class="divider">
+
+          <!-- Liquido de Direccion Hidraulica -->
+          <div class="field">
+            <label>Liquido de Direccion Hidraulica</label>
+            <div class="sino-row">
+              <button class="sino-btn" onclick="sino(this,'rell-direccion','si')">Si</button>
+              <button class="sino-btn" onclick="sino(this,'rell-direccion','no')">No</button>
+            </div>
+            <div class="sub-cond" id="cond-rell-direccion">
+              <div class="sub-label">Detalles — Rellenado de Liquido de Direccion Hidraulica</div>
+              <div class="field"><label>Litros que tiene la unidad</label><input type="number" step="0.1" id="rell-direccion-ant" placeholder="Litros antes del llenado"></div>
+              <div class="field"><label>Litros que se le pusieron</label><input type="number" step="0.1" id="rell-direccion-puestos" placeholder="Litros agregados"></div>
+              <div class="field"><label>Litros despues del llenado</label><input type="number" step="0.1" id="rell-direccion-despues" placeholder="Litros al terminar"></div>
+              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
+              <div class="foto-slot" id="slot-foto-rell-direccion">
+                <input type="file" id="foto-rell-direccion" accept="image/*" multiple onchange="onFotoChange(this,'foto-rell-direccion')">
+                <div class="foto-slot-icon"></div>
+                <div class="foto-slot-lbl">Evidencia</div>
+                <div class="foto-slot-count" id="cnt-foto-rell-direccion">0 fotos</div>
+              </div>
+            </div></div>
+              <div class="field"><label>Observaciones</label><textarea id="rell-direccion-obs" placeholder="Observaciones..."></textarea></div>
+            </div>
+          </div>
+
           <div class="field" style="margin-top:4px;">
             <label>Observaciones Generales — Rellenados</label>
             <textarea id="obs-llenado" placeholder="Observaciones generales de rellenados..."></textarea>
@@ -1098,7 +1227,18 @@ var LOGO_B64           = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKYAAACq
 // ── Estado ────────────────────────────────────────────────
 var estadoSino = {};    // clave -> 'si' | 'no'
 var datosUnidad = null;
-var piezasContadores = { tal:0, elec:0, img:0 };
+var piezasContadores = { tal:0, elec:0, img:0, susp:0 };
+
+// Selección múltiple de hojas de muelle (1-5); si son las 5 = muelle completo
+function toggleHoja(el) {
+  el.classList.toggle('sel-si');
+  var sel = hojasSeleccionadas();
+  var lbl = document.getElementById('muellesCompletoLbl');
+  if (lbl) lbl.style.display = sel.length === 5 ? 'block' : 'none';
+}
+function hojasSeleccionadas() {
+  return Array.from(document.querySelectorAll('.hoja-btn.sel-si')).map(function(b){ return b.textContent.trim(); });
+}
 
 var FILTROS = [
   { id:'fil-aire',      label:'Filtro de Aire' },
@@ -1472,6 +1612,14 @@ async function enviarReporte() {
       ]
     },
     {
+      id: 'susp', nombre: 'Suspension',
+      items: [
+        { sino: 'muelles',        label: 'Cambio de Muelles', camposReq: [], fotoBase: 'foto-muelles', hojasReq: true },
+        { sino: 'amortiguadores', label: 'Amortiguadores',    camposReq: [], fotoBase: 'foto-amort' },
+        { sino: 'piezas-susp',    label: 'Piezas',            camposReq: [], piezasArea: 'susp' },
+      ]
+    },
+    {
       id: 'llenado', nombre: 'Rellenados',
       items: [
         { sino: 'rell-aceite',   label: 'Aceite',            camposReq: ['rell-aceite-ant','rell-aceite-puestos','rell-aceite-despues'],       fotoSingle: 'foto-rell-aceite' },
@@ -1479,6 +1627,7 @@ async function enviarReporte() {
         { sino: 'rell-frenos',   label: 'Liquido de Frenos', camposReq: ['rell-frenos-ant','rell-frenos-puestos','rell-frenos-despues'],       fotoSingle: 'foto-rell-frenos' },
         { sino: 'rell-anti',     label: 'Anticongelante',    camposReq: ['rell-anti-ant','rell-anti-puestos','rell-anti-despues'],             fotoSingle: 'foto-rell-anti' },
         { sino: 'rell-gasolina', label: 'Gasolina',          camposReq: ['rell-gasolina-ant','rell-gasolina-puestos','rell-gasolina-despues'], fotoSingle: 'foto-rell-gasolina' },
+        { sino: 'rell-direccion',label: 'Liquido de Direccion Hidraulica', camposReq: ['rell-direccion-ant','rell-direccion-puestos','rell-direccion-despues'], fotoSingle: 'foto-rell-direccion' },
       ]
     },
   ];
@@ -1539,6 +1688,12 @@ async function enviarReporte() {
         // 3b. Foto única de evidencia obligatoria
         if (item.fotoSingle && numFotos(item.fotoSingle) === 0) {
           errorFoto(sec.nombre, item.label, 'Evidencia', item.fotoSingle);
+          return;
+        }
+        // 3c. Hojas de muelle: al menos una seleccionada
+        if (item.hojasReq && hojasSeleccionadas().length === 0) {
+          mostrarError('En "' + sec.nombre + ' → ' + item.label + '" selecciona al menos una hoja (1-5).');
+          document.getElementById('cond-muelles').scrollIntoView({ behavior:'smooth', block:'center' });
           return;
         }
 
@@ -1747,6 +1902,23 @@ async function enviarReporte() {
         obsGral: val('obs-llantas')
       },
 
+      // SUSPENSION
+      suspension: {
+        activo: document.getElementById('body-susp').classList.contains('open'),
+        muelles: estadoSino['muelles'] === 'si' ? {
+          hojas:    hojasSeleccionadas(),
+          completo: hojasSeleccionadas().length === 5,
+          fotos:    await procesarFotosPar('foto-muelles'),
+          obs:      val('muelles-obs')
+        } : null,
+        amortiguadores: estadoSino['amortiguadores'] === 'si' ? {
+          fotos: await procesarFotosPar('foto-amort'),
+          obs:   val('amort-obs')
+        } : null,
+        piezas:  await recolectarPiezas('susp'),
+        obsGral: val('obs-susp')
+      },
+
       // RELLENADOS
       llenado: {
         activo: document.getElementById('body-llenado').classList.contains('open'),
@@ -1784,6 +1956,13 @@ async function enviarReporte() {
           litDespues: val('rell-gasolina-despues'),
           fotos:      await procesarInputFotos('foto-rell-gasolina'),
           obs:        val('rell-gasolina-obs')
+        } : null,
+        direccion: estadoSino['rell-direccion'] === 'si' ? {
+          litAnt:     val('rell-direccion-ant'),
+          litPuestos: val('rell-direccion-puestos'),
+          litDespues: val('rell-direccion-despues'),
+          fotos:      await procesarInputFotos('foto-rell-direccion'),
+          obs:        val('rell-direccion-obs')
         } : null,
         obsGral: val('obs-llenado')
       }

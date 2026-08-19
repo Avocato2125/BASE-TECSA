@@ -326,13 +326,15 @@ const HOJAS_TALLER = {
   imagen:    'Reporte Imagen',
   llantas:   'Reporte Llantas',
   llenado:   'Llenado',
+  suspension:'Suspension',
 };
 const HEADERS_TALLER = {
   mecanico:  ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Aceite-Km','Aceite-CapTeorica','Aceite-LitAnt','Aceite-NivelBajo','Aceite-LitNuevo','Aceite-Obs','Frenos-Obs','Engrasado','Engrasado-Obs','SrvAceite-Km','SrvAceite-Cap','SrvAceite-LitAnt','SrvAceite-NivelBajo','SrvAceite-LitNuevo','SrvAceite-Obs','Filtro-Aire','FiltroAire-Obs','Filtro-Diesel','FiltroDiesel-Obs','Filtro-Aceite','FiltroAceite-Obs','Filtro-Separador','FiltroSep-Obs','Afinacion-Km','Afinacion-Piezas','Afinacion-Mat','Afinacion-Obs','Piezas-Taller','Ajuste','Obs-Taller'],
   electrico: ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Carga-Bat-VoltAnt','Carga-Bat-VoltNuevo','Carga-Bat-Obs','Cambio-Bat-Motivo','Cambio-Bat-Obs','Piezas-Electrico','Obs-Electrico'],
   imagen:    ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Calcas-Mat','Calcas-Obs','Asiento-Mat','Asiento-Obs','Pintura-Area','Pintura-Mat','Pintura-Obs','Soldadura-Mat','Soldadura-Obs','Piezas-Imagen','Obs-Imagen'],
   llantas:   ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Llanta-Marca','Llanta-Obs','LlantaRep-Vida','LlantaRep-Obs','Obs-Llantas'],
-  llenado:   ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Aceite-LitAnt','Aceite-LitPuestos','Aceite-LitDespues','Aceite-Obs','Adblue-LitAnt','Adblue-LitPuestos','Adblue-LitDespues','Adblue-Obs','LiqFrenos-LitAnt','LiqFrenos-LitPuestos','LiqFrenos-LitDespues','LiqFrenos-Obs','Anticong-LitAnt','Anticong-LitPuestos','Anticong-LitDespues','Anticong-Obs','Gasolina-LitAnt','Gasolina-LitPuestos','Gasolina-LitDespues','Gasolina-Obs','Obs-Llenado'],
+  llenado:   ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Aceite-LitAnt','Aceite-LitPuestos','Aceite-LitDespues','Aceite-Obs','Adblue-LitAnt','Adblue-LitPuestos','Adblue-LitDespues','Adblue-Obs','LiqFrenos-LitAnt','LiqFrenos-LitPuestos','LiqFrenos-LitDespues','LiqFrenos-Obs','Anticong-LitAnt','Anticong-LitPuestos','Anticong-LitDespues','Anticong-Obs','Gasolina-LitAnt','Gasolina-LitPuestos','Gasolina-LitDespues','Gasolina-Obs','Direccion-LitAnt','Direccion-LitPuestos','Direccion-LitDespues','Direccion-Obs','Obs-Llenado'],
+  suspension:['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Muelles','Muelles-Hojas','Muelles-Obs','Amortiguadores','Amortiguadores-Obs','Piezas-Suspension','Obs-Suspension'],
 };
 
 function v(obj, key) { return (obj && obj[key] != null) ? String(obj[key]) : ''; }
@@ -444,6 +446,16 @@ app.post('/api/reporte-taller', async (req, res) => {
     if (ln.liqFrenos)      await subirAreaFotos('Rellenado-LiqFrenos',      [ln.liqFrenos]);
     if (ln.anticongelante) await subirAreaFotos('Rellenado-Anticongelante', [ln.anticongelante]);
     if (ln.gasolina)       await subirAreaFotos('Rellenado-Gasolina',       [ln.gasolina]);
+    if (ln.direccion)      await subirAreaFotos('Rellenado-Direccion',      [ln.direccion]);
+    // Suspension
+    const sp = datos.suspension || {};
+    if (sp.muelles)        await subirAreaFotos('Muelles',        [sp.muelles]);
+    if (sp.amortiguadores) await subirAreaFotos('Amortiguadores', [sp.amortiguadores]);
+    if (sp.piezas?.length) {
+      for (let i = 0; i < sp.piezas.length; i++) {
+        await subirAreaFotos(`Pieza-Suspension-${i+1}-${(sp.piezas[i].nombre||'').replace(/[\/\\:*?"<>|]/g,'-')}`, [sp.piezas[i]]);
+      }
+    }
 
     // ── 2. Guardar en hojas separadas por área ────────────────
     const comun = [datos.folioEntrada, fecha, hora, datos.unidad, datos.operador, datos.planta, datos.areaServicio, datos.mecanico];
@@ -469,7 +481,17 @@ app.post('/api/reporte-taller', async (req, res) => {
       v(ln.liqFrenos,'litAnt'),      v(ln.liqFrenos,'litPuestos'),      v(ln.liqFrenos,'litDespues'),      v(ln.liqFrenos,'obs'),
       v(ln.anticongelante,'litAnt'), v(ln.anticongelante,'litPuestos'), v(ln.anticongelante,'litDespues'), v(ln.anticongelante,'obs'),
       v(ln.gasolina,'litAnt'),       v(ln.gasolina,'litPuestos'),       v(ln.gasolina,'litDespues'),       v(ln.gasolina,'obs'),
+      v(ln.direccion,'litAnt'),      v(ln.direccion,'litPuestos'),      v(ln.direccion,'litDespues'),      v(ln.direccion,'obs'),
       ln.obsGral||''
+    ];
+    const rowSusp = [...comun,
+      sp.muelles ? 'Si' : 'No',
+      sp.muelles ? ((sp.muelles.hojas||[]).join(', ') + (sp.muelles.completo ? ' (Muelle completo)' : '')) : '',
+      v(sp.muelles,'obs'),
+      sp.amortiguadores ? 'Si' : 'No',
+      v(sp.amortiguadores,'obs'),
+      piezasTexto(sp.piezas),
+      sp.obsGral||''
     ];
 
     const tieneContenido = row => row.slice(8).some(c => c !== '' && c != null);
@@ -502,6 +524,7 @@ app.post('/api/reporte-taller', async (req, res) => {
       appendHoja(HOJAS_TALLER.imagen,    HEADERS_TALLER.imagen,    rowImg),
       appendHoja(HOJAS_TALLER.llantas,   HEADERS_TALLER.llantas,   rowLl),
       appendHoja(HOJAS_TALLER.llenado,   HEADERS_TALLER.llenado,   rowLlenado),
+      appendHoja(HOJAS_TALLER.suspension,HEADERS_TALLER.suspension,rowSusp),
     ]);
 
     // ── 3. Dar de baja en Taller y Entradas ───────────────────
