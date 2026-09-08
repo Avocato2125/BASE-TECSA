@@ -16,6 +16,7 @@ const PASS_BAJA         = process.env.PASSWORD_BAJA;
 const FOLDER_RAIZ       = process.env.FOLDER_RAIZ;
 const FOLDER_AUDITORIAS = process.env.FOLDER_AUDITORIAS;
 const SHEET_ID_PROVEDORES = process.env.SHEET_ID_PROVEDORES;
+const SHEET_ID_ANTIDOPING = process.env.SHEET_ID_ANTIDOPING;
 const FOLDER_PROVEDORES   = process.env.FOLDER_PROVEDORES;
 
 // Verificación al arrancar: si falta alguna variable critica, detener el
@@ -934,6 +935,155 @@ app.post('/api/salida-proveedor', async (req, res) => {
 
     res.json({ ok: true });
   } catch(e) { console.error(e); res.json({ ok: false, error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ANTIDOPING — folio consecutivo y registro en hoja mensual
+// Spreadsheet propio (SHEET_ID_ANTIDOPING).
+// Hoja por mes: "DOPING MES AÑO". Datos desde la fila 4.
+// ═══════════════════════════════════════════════════════════════
+const MESES_AD = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                  'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const HEADERS_AD = ['#','FECHA','OPERADOR','PLANTA','UNIDAD',
+  'RAZON DEL EXAMEN','MEDICAMENTO EL ULTIMO MES','ESPECIMEN',
+  'AMP','MET','TCH','COC','OPI','MPD','BZD'];
+const DATA_START_ROW_AD = 4;
+
+function tituloHojaAD(fecha) {
+  return `DOPING ${MESES_AD[fecha.getMonth()]} ${fecha.getFullYear()}`;
+}
+
+// Folio global: el mayor numero de la columna A en TODAS las hojas DOPING.
+// Reemplaza al PropertiesService de Apps Script (que no existe en Node) y
+// ademas sobrevive a un redeploy, porque la fuente de verdad es la hoja.
+async function ultimoFolioAD(sheets) {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID_ANTIDOPING });
+  const hojas = (meta.data.sheets || [])
+    .map(s => s.properties.title)
+    .filter(t => t.toUpperCase().trim().startsWith('DOPING '));
+  if (!hojas.length) return 0;
+  const rangos = hojas.map(h => `'${h}'!A${DATA_START_ROW_AD}:A`);
+  const res = await sheets.spreadsheets.values.batchGet({
+    spreadsheetId: SHEET_ID_ANTIDOPING, ranges: rangos,
+  });
+  let max = 0;
+  (res.data.valueRanges || []).forEach(vr => {
+    (vr.values || []).flat().forEach(v => {
+      const n = parseInt(v, 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+  });
+  return max;
+}
+
+// Crea la hoja del mes con titulo, encabezados y formato si aun no existe
+async function getOCrearHojaAD(sheets, fecha) {
+  const titulo = tituloHojaAD(fecha);
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID_ANTIDOPING });
+  const existente = (meta.data.sheets || [])
+    .find(s => s.properties.title.toUpperCase().trim() === titulo);
+  if (existente) return titulo;
+
+  const add = await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SHEET_ID_ANTIDOPING,
+    requestBody: { requests: [{ addSheet: { properties: { title: titulo } } }] }
+  });
+  const sheetId = add.data.replies[0].addSheet.properties.sheetId;
+
+  // Titulo en A1:O1 y encabezados en la fila 3
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SHEET_ID_ANTIDOPING,
+    requestBody: { valueInputOption: 'RAW', data: [
+      { range: `'${titulo}'!A1`, values: [[titulo]] },
+      { range: `'${titulo}'!A3`, values: [HEADERS_AD] },
+    ]}
+  });
+
+  const anchos = [40,90,200,130,70,160,160,90,80,80,80,80,80,80,80];
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SHEET_ID_ANTIDOPING,
+    requestBody: { requests: [
+      { mergeCells: { range: { sheetId, startRowIndex:0, endRowIndex:1, startColumnIndex:0, endColumnIndex:15 }, mergeType:'MERGE_ALL' } },
+      { repeatCell: {
+          range: { sheetId, startRowIndex:0, endRowIndex:1, startColumnIndex:0, endColumnIndex:15 },
+          cell: { userEnteredFormat: {
+            backgroundColor:{ red:0.965, green:0.722, blue:0 },
+            horizontalAlignment:'CENTER', verticalAlignment:'MIDDLE',
+            textFormat:{ bold:true, fontSize:18, foregroundColor:{ red:1, green:1, blue:1 } }
+          }},
+          fields:'userEnteredFormat' } },
+      { repeatCell: {
+          range: { sheetId, startRowIndex:2, endRowIndex:3, startColumnIndex:0, endColumnIndex:15 },
+          cell: { userEnteredFormat: {
+            backgroundColor:{ red:0.965, green:0.722, blue:0 },
+            horizontalAlignment:'CENTER', wrapStrategy:'WRAP',
+            textFormat:{ bold:true, foregroundColor:{ red:1, green:1, blue:1 } }
+          }},
+          fields:'userEnteredFormat' } },
+      { updateDimensionProperties: { range:{ sheetId, dimension:'ROWS', startIndex:0, endIndex:1 }, properties:{ pixelSize:50 }, fields:'pixelSize' } },
+      { updateDimensionProperties: { range:{ sheetId, dimension:'ROWS', startIndex:1, endIndex:2 }, properties:{ pixelSize:8  }, fields:'pixelSize' } },
+      { updateDimensionProperties: { range:{ sheetId, dimension:'ROWS', startIndex:2, endIndex:3 }, properties:{ pixelSize:36 }, fields:'pixelSize' } },
+      ...anchos.map((w,i) => ({ updateDimensionProperties: {
+        range:{ sheetId, dimension:'COLUMNS', startIndex:i, endIndex:i+1 },
+        properties:{ pixelSize:w }, fields:'pixelSize' } })),
+    ]}
+  });
+  return titulo;
+}
+
+// Primera fila vacia desde la fila 4 (respeta contenido previo de la hoja)
+async function primeraFilaVaciaAD(sheets, titulo) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID_ANTIDOPING, range: `'${titulo}'!A${DATA_START_ROW_AD}:A`,
+  });
+  const filas = res.data.values || [];
+  for (let i = 0; i < filas.length; i++) {
+    const c = filas[i][0];
+    if (c === '' || c === null || c === undefined) return DATA_START_ROW_AD + i;
+  }
+  return DATA_START_ROW_AD + filas.length;
+}
+
+app.get('/api/antidoping-folio', async (req, res) => {
+  try {
+    if (!SHEET_ID_ANTIDOPING) return res.json({ ok:false, error:'Falta SHEET_ID_ANTIDOPING' });
+    const { sheets } = await getClients();
+    const ultimo = await ultimoFolioAD(sheets);
+    res.json({ ok:true, folio: ultimo + 1 });
+  } catch(e) { console.error('[Antidoping] folio:', e.message); res.json({ ok:false, error:e.message }); }
+});
+
+app.post('/api/antidoping', async (req, res) => {
+  try {
+    if (!SHEET_ID_ANTIDOPING) return res.json({ result:'error', error:'Falta SHEET_ID_ANTIDOPING' });
+    const d = req.body;
+    const { sheets } = await getClients();
+
+    const fecha  = d.fecha ? new Date(d.fecha + 'T12:00:00') : new Date();
+    const titulo = await getOCrearHojaAD(sheets, fecha);
+
+    const folioNum = (await ultimoFolioAD(sheets)) + 1;
+    const fila = [
+      folioNum, d.fecha||'', d.operador||'', d.planta||'', d.unidad||'',
+      d.razon||'', d.medicamento||'NO', d.especimen||'',
+      d.AMP||'', d.MET||'', d.TCH||'', d.COC||'', d.OPI||'', d.MPD||'', d.BZD||'',
+    ];
+
+    const filaDestino = await primeraFilaVaciaAD(sheets, titulo);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID_ANTIDOPING,
+      range: `'${titulo}'!A${filaDestino}:O${filaDestino}`,
+      valueInputOption: 'RAW', requestBody: { values: [fila] }
+    });
+
+    console.log(`[Antidoping] Folio ${folioNum} → ${titulo} fila ${filaDestino}`);
+    res.json({
+      result: 'success',
+      folio: String(folioNum).padStart(5,'0'),
+      hoja: titulo,
+      nextFolio: folioNum + 1,
+    });
+  } catch(e) { console.error('[Antidoping] guardar:', e.message); res.json({ result:'error', error:e.message }); }
 });
 
 // ── Catch-all ──────────────────────────────────────────────────

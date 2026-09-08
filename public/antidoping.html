@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Antidoping - TECSA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f4f4f0;color:#111}
+.wrap{max-width:820px;margin:0 auto;padding:1.5rem 1rem}
+.card{background:#fff;border:1px solid #e5e5e0;border-radius:10px;padding:1.5rem 2rem;margin-bottom:1rem}
+.logo-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem}
+.logo-slot{width:130px;height:48px;border:1px dashed #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.logo-slot img{width:100%;height:100%;object-fit:contain}
+.logo-slot span{font-size:10px;color:#999;text-align:center;padding:4px}
+.doc-info{text-align:right}
+.doc-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:2px}
+h1{font-size:17px;font-weight:500;color:#111}
+.folio-badge{font-size:12px;color:#888;margin-top:3px}
+.folio-num{color:#111;font-weight:600}
+.st{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#888;font-weight:500;margin-bottom:.65rem;padding-bottom:.35rem;border-bottom:1px solid #eee}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.65rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem;margin-bottom:.65rem}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:500}
+.fg input,.fg select,.fg textarea{background:transparent;border:none;border-bottom:1px solid #ddd;border-radius:0;padding:5px 2px;font-size:13px;font-family:inherit;color:#111;width:100%}
+.fg select{-webkit-appearance:none;appearance:none;cursor:pointer}
+.fg input:focus,.fg select:focus{outline:none;border-bottom:2px solid #111}
+.cbg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:5px;margin-bottom:.65rem}
+.ci{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px}
+.ci input{width:14px;height:14px;cursor:pointer}
+.inl{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-bottom:.4rem}
+.inl label{font-size:13px;white-space:nowrap}
+.inl input{border:none;border-bottom:1px solid #ddd;background:transparent;padding:3px 2px;font-size:13px;font-family:inherit;color:#111;min-width:120px;flex:1}
+.ri{display:flex;gap:1.25rem;align-items:center;margin-top:5px}
+.ri label{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
+.legal{font-size:11px;color:#777;line-height:1.6;margin-bottom:.65rem;padding:.55rem .7rem;background:#f8f8f5;border-radius:6px}
+canvas{border:1px solid #ddd;border-radius:6px;background:#f8f8f5;cursor:crosshair;display:block;width:100%}
+.slbl{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;text-align:center;margin-bottom:5px}
+.scl{font-size:11px;color:#888;text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;margin-top:3px}
+.rt{width:100%;border-collapse:collapse;font-size:12px}
+.rt th{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:#888;font-weight:500;padding:6px 8px;border-bottom:1px solid #eee;text-align:left}
+.rt th:not(:first-child){text-align:center}
+.rt td{padding:5px 8px;border-bottom:1px solid #eee;color:#111}
+.rt td:not(:first-child){text-align:center}
+.rt tr:last-child td{border-bottom:none}
+.rb{padding:3px 9px;font-size:10px;border:1px solid #ddd;border-radius:20px;cursor:pointer;background:transparent;font-family:inherit;color:#888}
+.rb.pos.on{background:#fef2f2;border-color:#e24b4a;color:#a32d2d}
+.rb.neg.on{background:#eaf3de;border-color:#639922;color:#3b6d11}
+.rb.inv.on{background:#faeeda;border-color:#ba7517;color:#854f0b}
+.acts{display:flex;gap:1rem;margin-top:1.25rem}
+.bp{flex:1;padding:13px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer}
+.bp:disabled{opacity:.5;cursor:not-allowed}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+.db{background:#f8f8f5;border-radius:6px;padding:.55rem .7rem;margin-bottom:.45rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="card">
+  <div class="logo-row">
+   <div class="logo-slot">
+    <img id="logo-img"
+         src="https://lh3.googleusercontent.com/d/1yAEWpvJuTnNiSOG9df8lCxHqt-U7pVvy"
+         crossorigin="anonymous" alt="Logo"
+         onerror="this.style.display='none';document.getElementById('lph').style.display='block'">
+    <span id="lph" style="display:none">Logo TECSA</span>
+   </div>
+   <div class="doc-info">
+    <div class="doc-title">Reporte de prueba de sustancias controladas</div>
+    <h1>Antidoping</h1>
+    <div class="folio-badge">Folio: <span class="folio-num" id="folio-num">cargando…</span></div>
+   </div>
+  </div>
+
+  <div class="st">Datos generales</div>
+  <div class="g2">
+   <div class="fg"><label>Planta</label>
+    <select id="planta">
+     <option value="">Seleccionar…</option>
+     <option>GERBER</option><option>PHILLIPS</option><option>LEOCH BATTERY</option>
+     <option>PEMSA</option><option>SKYJACK</option><option>TI-AUTOMOTIVE</option>
+     <option>DEACERO</option><option>TECTRAN</option>
+    </select>
+   </div>
+   <div class="fg"><label>Unidad</label><input type="text" id="unidad" placeholder="Ej. 082"></div>
+  </div>
+  <div class="g2" style="margin-bottom:.9rem">
+   <div class="fg"><label>Fecha</label><input type="date" id="fecha"></div><div></div>
+  </div>
+
+  <div class="st">Operador</div>
+  <div class="g3">
+   <div class="fg"><label>Nombre(s)</label><input type="text" id="op-nombre"></div>
+   <div class="fg"><label>Apellido paterno</label><input type="text" id="op-paterno"></div>
+   <div class="fg"><label>Apellido materno</label><input type="text" id="op-materno"></div>
+  </div>
+
+  <div class="st" style="margin-top:.65rem">Razón del examen</div>
+  <div class="cbg">
+   <label class="ci"><input type="checkbox" class="razon" value="Solicitud de empleo"><span>Solicitud de empleo</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Reincorporación al trabajo"><span>Reincorporación al trabajo</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Aleatorio"><span>Aleatorio</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Sospecha razonable"><span>Sospecha razonable</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Post-accidente"><span>Post-accidente</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Seguimiento"><span>Seguimiento</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Examen médico periódico"><span>Examen médico periódico</span></label>
+   <label class="ci"><input type="checkbox" class="razon" value="Otros"><span>Otros</span></label>
+  </div>
+
+  <div class="st" style="margin-top:.65rem">Declaraciones</div>
+  <div class="db">
+   <div class="inl">
+    <label>Declaro que en el último mes</label>
+    <input type="text" id="medicamento" placeholder="medicamento o NO">
+    <label>he tomado algún medicamento.</label>
+   </div>
+  </div>
+  <div class="db">
+   <div style="font-size:12px;font-weight:500;margin-bottom:4px">Ha consumido drogas anteriormente. Favor de especificar:</div>
+   <div class="fg"><input type="text" id="drogas-ant" placeholder="NINGUNO o especificar"></div>
+  </div>
+
+  <div class="st" style="margin-top:.65rem">Muestra</div>
+  <div class="g2">
+   <div class="fg"><label>Lugar de toma de muestra</label><input type="text" id="lugar-muestra" placeholder="Ej. Base Tersa"></div>
+   <div class="fg"><label>¿Se dividió la muestra?</label>
+    <div class="ri"><label><input type="radio" name="dividida" value="Sí"> Sí</label><label><input type="radio" name="dividida" value="No" checked> No</label></div>
+   </div>
+  </div>
+  <div class="fg" style="margin-bottom:.65rem"><label>Espécimen</label>
+   <div class="ri"><label><input type="radio" name="especimen" value="Orina"> Orina</label><label><input type="radio" name="especimen" value="Saliva"> Saliva</label></div>
+  </div>
+  <div class="fg"><label>Observaciones</label>
+   <textarea id="observaciones" rows="2" style="border:none;border-bottom:1px solid #ddd;background:transparent;padding:5px 2px;font-size:12px;font-family:inherit;color:#111;width:100%;resize:none"></textarea>
+  </div>
+ </div>
+
+ <div class="card">
+  <div class="st">Resultados de sustancias</div>
+  <table class="rt"><thead><tr>
+   <th>Sustancia</th><th>Punto de corte</th><th>Positivo</th><th>Negativo</th><th>Inválido</th>
+  </tr></thead><tbody id="rbody"></tbody></table>
+ </div>
+
+ <div class="card">
+  <div class="st">Certificación del recolector</div>
+  <div class="legal">Certifico que el espécimen especificado en este formulario es y fue tomado, etiquetado y sellado en presencia del donante.</div>
+  <div style="display:flex;flex-direction:column;gap:1rem;max-width:500px">
+   <div class="fg">
+    <label>Nombre del recolector</label>
+    <input type="text" id="rec-nombre" placeholder="Nombre completo">
+   </div>
+   <div>
+    <div class="slbl">Firma del recolector</div>
+    <canvas id="sig-rec" height="100"></canvas>
+    <button class="scl" onclick="clrSig('sig-rec')">Borrar</button>
+   </div>
+  </div>
+
+  <div class="st" style="margin-top:1.5rem">Autorización del donante</div>
+  <div class="legal">
+   <strong style="display:block;margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#333">Autorización de prueba de sustancias controladas</strong>
+   Certifico que doy mi consentimiento para realizar la prueba de sustancias controladas y autorizo al personal de la empresa a tomarme la muestra para la misma y en caso de ser necesario autorizo, que el resultado sea confirmado a través de los procedimientos de un laboratorio certificado.
+  </div>
+  <div class="slbl">Firma del donante</div>
+  <canvas id="sig-don" height="100"></canvas>
+  <button class="scl" onclick="clrSig('sig-don')">Borrar</button>
+ </div>
+
+ <div class="acts">
+  <button class="bp" id="btn-guardar" onclick="guardarYPDF()">Guardar</button>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUBS=[
+  {k:'AMP',n:'Anfetamina (AMP)',c:'1000 ng/mL'},
+  {k:'MET',n:'Metanfetamina (MET)',c:'1000 ng/mL'},
+  {k:'TCH',n:'Marihuana (TCH)',c:'50 ng/mL'},
+  {k:'COC',n:'Cocaína (COC)',c:'300 ng/mL'},
+  {k:'OPI',n:'Opiáceos (OPI)',c:'2000 ng/mL'},
+  {k:'BZD',n:'Benzodiacepinas (BZD)',c:'Bzd 200'},
+  {k:'MPD',n:'Metilfenidato (MPD)',c:'Mpd 300'},
+  {k:'FEN',n:'Fentanilo',c:'—'},
+];
+const RES={};
+SUBS.forEach(s=>RES[s.k]='NEGATIVO');
+
+const tbody=document.getElementById('rbody');
+SUBS.forEach(s=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><b style="font-size:12px">${s.n}</b></td>
+  <td style="font-size:11px;color:#888">${s.c}</td>
+  <td><button class="rb pos" onclick="setR('${s.k}','POSITIVO',this)">Positivo</button></td>
+  <td><button class="rb neg on" onclick="setR('${s.k}','NEGATIVO',this)">Negativo</button></td>
+  <td><button class="rb inv" onclick="setR('${s.k}','INVALIDO',this)">Inválido</button></td>`;
+  tbody.appendChild(tr);
+});
+function setR(k,v,btn){
+  RES[k]=v;
+  btn.closest('tr').querySelectorAll('.rb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+document.getElementById('fecha').value=new Date().toISOString().split('T')[0];
+
+let FOLIO=null;
+const API=window.location.origin;
+async function cargarFolio(){
+  try{
+    const r=await fetch(API+'/api/antidoping-folio');
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'error');
+    FOLIO=String(j.folio).padStart(5,'0');
+    document.getElementById('folio-num').textContent=FOLIO;
+  }catch(e){
+    FOLIO='LOCAL';
+    document.getElementById('folio-num').textContent='LOCAL';
+  }
+}
+cargarFolio();
+
+function initC(id){
+  const c=document.getElementById(id);
+  c.width=c.offsetWidth||340;
+  let drw=false,lx=0,ly=0;
+  const ctx=c.getContext('2d');
+  ctx.strokeStyle='#111';ctx.lineWidth=1.6;ctx.lineCap='round';ctx.lineJoin='round';
+  function gp(e){const r=c.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:s.clientX-r.left,y:s.clientY-r.top};}
+  c.onmousedown=e=>{drw=true;const p=gp(e);lx=p.x;ly=p.y;};
+  c.onmousemove=e=>{if(!drw)return;const p=gp(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;};
+  c.onmouseup=c.onmouseleave=()=>drw=false;
+  c.addEventListener('touchstart',e=>{e.preventDefault();drw=true;const p=gp(e);lx=p.x;ly=p.y;},{passive:false});
+  c.addEventListener('touchmove',e=>{e.preventDefault();if(!drw)return;const p=gp(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;},{passive:false});
+  c.addEventListener('touchend',()=>drw=false);
+}
+function clrSig(id){document.getElementById(id).getContext('2d').clearRect(0,0,9999,9999);}
+setTimeout(()=>{initC('sig-rec');initC('sig-don');},500);
+
+function toast(m,d=4000){
+  const t=document.getElementById('toast');
+  t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),d);
+}
+
+function getData(){
+  const razones=[...document.querySelectorAll('.razon:checked')].map(c=>c.value).join(', ')||'—';
+  return{
+    folio:FOLIO,
+    fecha:document.getElementById('fecha').value,
+    planta:document.getElementById('planta').value,
+    unidad:document.getElementById('unidad').value,
+    nombre:document.getElementById('op-nombre').value,
+    paterno:document.getElementById('op-paterno').value,
+    materno:document.getElementById('op-materno').value,
+    operador:[document.getElementById('op-nombre').value,
+              document.getElementById('op-paterno').value,
+              document.getElementById('op-materno').value].filter(Boolean).join(' '),
+    razon:razones,
+    medicamento:document.getElementById('medicamento').value||'NO',
+    drogasAnt:document.getElementById('drogas-ant').value||'NINGUNO',
+    lugarMuestra:document.getElementById('lugar-muestra').value,
+    dividida:document.querySelector('input[name=dividida]:checked')?.value||'No',
+    especimen:document.querySelector('input[name=especimen]:checked')?.value||'—',
+    observaciones:document.getElementById('observaciones').value,
+    recolector:document.getElementById('rec-nombre').value,
+    results:{...RES},
+  };
+}
+
+// ── BOTÓN ÚNICO: guarda en Sheets y luego genera PDF ─────────────
+function guardarYPDF(){
+  const d=getData();
+  if(!d.planta||!d.operador||!d.fecha){toast('⚠ Completa planta, operador y fecha');return;}
+
+  const btn=document.getElementById('btn-guardar');
+  btn.textContent='Guardando…';
+  btn.disabled=true;
+
+  const payload={
+    folio:d.folio, fecha:d.fecha, operador:d.operador,
+    planta:d.planta, unidad:d.unidad, razon:d.razon,
+    medicamento:d.medicamento, especimen:d.especimen,
+    AMP:d.results.AMP, MET:d.results.MET, TCH:d.results.TCH,
+    COC:d.results.COC, OPI:d.results.OPI, MPD:d.results.MPD,
+    BZD:d.results.BZD,
+  };
+
+  guardarEnServidor(payload,d,btn);
+}
+
+async function guardarEnServidor(payload,d,btn){
+  try{
+    const r=await fetch(API+'/api/antidoping',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const res=await r.json();
+    if(res && res.result==='success'){
+      FOLIO=String(res.nextFolio).padStart(5,'0');
+      document.getElementById('folio-num').textContent=FOLIO;
+      d.folio=res.folio;
+      generarPDF(d);
+      toast('✓ Guardado en "'+res.hoja+'" — PDF descargado');
+      btn.textContent='Guardar';
+      btn.disabled=false;
+    }else{
+      toast('⚠ Error al guardar: '+((res&&res.error)||'desconocido'));
+      btn.textContent='Guardar';
+      btn.disabled=false;
+    }
+  }catch(e){
+    toast('⚠ Error de conexion: '+e.message);
+    btn.textContent='Guardar';
+    btn.disabled=false;
+  }
+}
+
+// ── GENERADOR DE PDF ──────────────────────────────────────────────
+function generarPDF(d){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'letter'});
+  const PW=215.9,PH=279.4,ML=10,MR=10,TW=PW-ML-MR;
+  let y=0;
+  const C={
+    hdrBg:[246,246,243],secBg:[239,239,235],
+    line:[192,192,188],lf:[220,220,216],
+    txt:[14,14,14],mu:[92,92,92],fa:[152,152,152],
+    pos:[150,28,28],neg:[28,112,28],inv:[130,88,4],bb:[163,163,158],
+  };
+
+  // HEADER
+  doc.setFillColor(...C.hdrBg);doc.rect(0,0,PW,13,'F');
+  try{
+    const li=document.getElementById('logo-img');
+    if(li&&li.complete&&li.naturalWidth>0){
+      const cv=document.createElement('canvas');
+      cv.width=li.naturalWidth;cv.height=li.naturalHeight;
+      cv.getContext('2d').drawImage(li,0,0);
+      doc.addImage(cv.toDataURL('image/png'),'PNG',ML,1.5,22,10);
+    }
+  }catch(e){}
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...C.txt);
+  doc.text('REPORTE DE PRUEBA DE SUSTANCIAS CONTROLADAS — ANTIDOPING',PW/2,6,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...C.mu);
+  doc.text('Transportes TECSA',PW/2,10.5,{align:'center'});
+  doc.setFontSize(6.5);doc.setTextColor(...C.fa);
+  doc.text('Folio: '+d.folio+'  |  Fecha: '+d.fecha,PW-MR,9,{align:'right'});
+  doc.setDrawColor(...C.line);doc.setLineWidth(0.25);doc.line(0,13,PW,13);
+  y=15.5;
+
+  function secHdr(t){doc.setFillColor(...C.secBg);doc.rect(ML,y,TW,4.5,'F');doc.setFont('helvetica','bold');doc.setFontSize(5.8);doc.setTextColor(...C.mu);doc.text(t,ML+1.5,y+3.1);y+=5.8;}
+  function lbl(t,x,yy){doc.setFont('helvetica','normal');doc.setFontSize(5.8);doc.setTextColor(...C.fa);doc.text(t.toUpperCase(),x,yy);}
+  function val(t,x,yy,w){doc.setFont('helvetica','normal');doc.setFontSize(8.8);doc.setTextColor(...C.txt);doc.text(String(t||'—'),x,yy+4);doc.setDrawColor(...C.line);doc.setLineWidth(0.18);doc.line(x,yy+5,x+w,yy+5);}
+  function chk(x,yy,sel,col){const s=2.6,bx=x,by=yy-2;doc.setDrawColor(...C.bb);doc.setLineWidth(0.22);doc.rect(bx,by,s,s);if(sel){doc.setDrawColor(...(col||C.txt));doc.setLineWidth(0.45);doc.line(bx+.28,by+.28,bx+s-.28,by+s-.28);doc.line(bx+s-.28,by+.28,bx+.28,by+s-.28);doc.setLineWidth(0.22);}}
+  function hln(yy){doc.setDrawColor(...C.lf);doc.setLineWidth(0.15);doc.line(ML,yy,ML+TW,yy);}
+
+  secHdr('DATOS GENERALES');
+  lbl('Planta',ML,y);val(d.planta,ML,y,48);
+  lbl('Unidad',ML+57,y);val(d.unidad,ML+57,y,28);
+  lbl('Fecha',ML+94,y);val(d.fecha,ML+94,y,TW-94);
+  y+=11;
+  lbl('Nombre(s)',ML,y);val(d.nombre,ML,y,52);
+  lbl('Apellido paterno',ML+62,y);val(d.paterno,ML+62,y,50);
+  lbl('Apellido materno',ML+122,y);val(d.materno,ML+122,y,TW-122);
+  y+=11;
+
+  secHdr('RAZÓN DEL EXAMEN');
+  const ROPTS=['Solicitud de empleo','Sospecha razonable','Examen médico periódico','Reincorporación al trabajo','Post-accidente','Otros','Aleatorio','Seguimiento'];
+  const selR=[...document.querySelectorAll('.razon:checked')].map(c=>c.value);
+  const cw=TW/4;
+  for(let i=0;i<ROPTS.length;i++){
+    const col=i%4,row=Math.floor(i/4);
+    chk(ML+col*cw,y+row*5.8,selR.includes(ROPTS[i]));
+    doc.setFont('helvetica','normal');doc.setFontSize(7.2);doc.setTextColor(...C.txt);
+    doc.text(ROPTS[i],ML+col*cw+3.8,y+row*5.8);
+  }
+  y+=13.5;
+
+  secHdr('DECLARACIONES');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.8);doc.setTextColor(...C.txt);
+  const p1='Declaro que en el último mes  ';
+  const p1w=doc.getTextWidth(p1);
+  const mT=d.medicamento;const mW=doc.getTextWidth(mT);
+  doc.text(p1,ML,y);
+  doc.setFont('helvetica','bold');doc.text(mT,ML+p1w,y);
+  doc.setFont('helvetica','normal');doc.text('  he tomado algún medicamento.',ML+p1w+mW,y);
+  doc.setDrawColor(...C.line);doc.setLineWidth(0.22);
+  doc.line(ML+p1w-.5,y+1,ML+p1w+mW+.5,y+1);
+  y+=5.5;
+  doc.setFontSize(7.8);doc.text('Ha consumido drogas anteriormente. Favor de especificar:',ML,y);
+  y+=4;
+  doc.setFont('helvetica','bold');doc.setFontSize(8.2);doc.text(d.drogasAnt,ML,y);
+  doc.setDrawColor(...C.line);doc.setLineWidth(0.22);doc.line(ML,y+1.2,ML+TW,y+1.2);
+  y+=8;
+
+  secHdr('MUESTRA');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.8);doc.setTextColor(...C.txt);
+  const lT='Lugar de toma de muestra: ';
+  const lTw=doc.getTextWidth(lT);
+  doc.text(lT,ML,y);
+  doc.setFont('helvetica','bold');doc.text(d.lugarMuestra||'—',ML+lTw,y);
+  const dx=ML+TW*0.53;
+  doc.setFont('helvetica','normal');doc.text('Se dividió la muestra:',dx,y);
+  const dTw=doc.getTextWidth('Se dividió la muestra:');
+  chk(dx+dTw+1.5,y,d.dividida==='Sí');doc.text('Sí',dx+dTw+5.5,y);
+  chk(dx+dTw+14,y,d.dividida==='No');doc.text('No',dx+dTw+18,y);
+  y+=5.5;
+  doc.setFontSize(7.8);doc.text('Espécimen:',ML,y);
+  chk(ML+19,y,d.especimen==='Orina');doc.text('Orina',ML+23,y);
+  chk(ML+40,y,d.especimen==='Saliva');doc.text('Saliva',ML+44,y);
+  if(d.observaciones){
+    y+=5;
+    doc.setFontSize(7.2);doc.setTextColor(...C.mu);
+    doc.text('Observaciones:',ML,y);
+    doc.setTextColor(...C.txt);
+    const obsL=doc.splitTextToSize(d.observaciones,TW-28);
+    doc.text(obsL,ML+25,y);
+    y+=obsL.length*3+1;
+  }
+  y+=5;
+
+  secHdr('RESULTADOS DE SUSTANCIAS');
+  const TC=[ML,ML+50,ML+90,ML+118,ML+148];
+  doc.setFont('helvetica','bold');doc.setFontSize(5.8);doc.setTextColor(...C.fa);
+  ['Sustancia','Punto de corte','Positivo','Negativo','Inválido'].forEach((h,i)=>doc.text(h,TC[i],y));
+  y+=1.5;hln(y);y+=3;
+  SUBS.forEach(s=>{
+    const res=d.results[s.k];
+    doc.setFont('helvetica','bold');doc.setFontSize(7.8);doc.setTextColor(...C.txt);
+    doc.text(s.n,TC[0],y);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(...C.mu);
+    doc.text(s.c,TC[1],y);
+    chk(TC[2]+2.5,y,res==='POSITIVO',C.pos);
+    chk(TC[3]+2.5,y,res==='NEGATIVO',C.neg);
+    chk(TC[4]+2.5,y,res==='INVALIDO',C.inv);
+    y+=4.8;hln(y-.4);
+  });
+  y+=5;
+
+  secHdr('CERTIFICACIÓN DEL RECOLECTOR');
+  doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(...C.mu);
+  const ctL=doc.splitTextToSize('Certifico que el espécimen especificado en este formulario es y fue tomado, etiquetado y sellado en presencia del donante.',TW);
+  doc.text(ctL,ML,y);y+=ctL.length*3+2.5;
+  doc.setFontSize(7.8);doc.setTextColor(...C.txt);
+  doc.text('Nombre del recolector: '+(d.recolector||'—'),ML,y);y+=3.5;
+  const sw=TW/2-3;
+  try{doc.addImage(document.getElementById('sig-rec').toDataURL('image/png'),'PNG',ML,y,sw,14);}catch(e){}
+  y+=15.5;
+  doc.setDrawColor(...C.line);doc.setLineWidth(0.22);doc.line(ML,y,ML+sw,y);
+  doc.setFontSize(5.8);doc.setTextColor(...C.fa);doc.text('Nombre y firma del recolector',ML,y+3);
+  y+=8;
+
+  secHdr('AUTORIZACIÓN DEL DONANTE');
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...C.txt);
+  doc.text('AUTORIZACIÓN DE PRUEBA DE SUSTANCIAS CONTROLADAS',ML,y);y+=4;
+  doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(...C.mu);
+  const atL=doc.splitTextToSize('Certifico que doy mi consentimiento para realizar la prueba de sustancias controladas y autorizo al personal de la empresa a tomarme la muestra para la misma y en caso de ser necesario autorizo, que el resultado sea confirmado a través de los procedimientos de un laboratorio certificado.',TW);
+  doc.text(atL,ML,y);y+=atL.length*3+3;
+  try{doc.addImage(document.getElementById('sig-don').toDataURL('image/png'),'PNG',ML,y,sw,16);}catch(e){}
+  y+=17.5;
+  doc.setDrawColor(...C.line);doc.setLineWidth(0.22);doc.line(ML,y,ML+sw,y);
+  doc.setFontSize(5.8);doc.setTextColor(...C.fa);doc.text('Firma del donante',ML,y+3);
+
+  const pages=doc.internal.getNumberOfPages();
+  for(let p=1;p<=pages;p++){
+    doc.setPage(p);
+    doc.setFontSize(5.2);doc.setTextColor(...C.fa);
+    doc.text('Folio: '+d.folio+'  —  TECSA Transportes  —  Pág. '+p+' de '+pages,PW/2,PH-3.5,{align:'center'});
+    doc.setDrawColor(...C.lf);doc.setLineWidth(0.12);doc.line(ML,PH-6,PW-MR,PH-6);
+  }
+
+  doc.save('Antidoping_'+d.folio+'_'+d.planta+'_'+d.operador.replace(/\s+/g,'_')+'_'+d.fecha+'.pdf');
+
+  // Rehabilitar botón y limpiar form después de guardar
+  const btn=document.getElementById('btn-guardar');
+  btn.textContent='Guardar';
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
