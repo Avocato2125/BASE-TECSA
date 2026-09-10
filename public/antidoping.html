@@ -170,6 +170,17 @@ canvas{border:1px solid #ddd;border-radius:6px;background:#f8f8f5;cursor:crossha
   <button class="scl" onclick="clrSig('sig-don')">Borrar</button>
  </div>
 
+ <div class="card">
+  <div class="st">Evidencia fotografica</div>
+  <div style="font-size:11px;color:#777;margin-bottom:.7rem">Las fotos se agregan en una hoja aparte al final del PDF.</div>
+  <input type="file" id="evid-input" accept="image/*" capture="environment" multiple style="display:none" onchange="agregarEvidencias(this)">
+  <button type="button" onclick="document.getElementById('evid-input').click()"
+    style="width:100%;padding:11px;background:transparent;border:1px dashed #ccc;border-radius:8px;font-size:13px;font-family:inherit;color:#666;cursor:pointer">
+    + Agregar foto <span id="evid-count" style="color:#111;font-weight:600"></span>
+  </button>
+  <div id="evid-prev" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:.8rem"></div>
+ </div>
+
  <div class="acts">
   <button class="bp" id="btn-guardar" onclick="guardarYPDF()">Guardar</button>
  </div>
@@ -247,6 +258,47 @@ function toast(m,d=4000){
   setTimeout(()=>t.classList.remove('show'),d);
 }
 
+// ── Evidencia fotografica ────────────────────────────────────────
+// Se comprimen en el navegador (canvas) para que el PDF no pese de mas.
+const EVID=[];
+function agregarEvidencias(input){
+  const files=input.files;
+  if(!files||!files.length)return;
+  let pend=files.length;
+  Array.from(files).forEach(function(file){
+    const rd=new FileReader();
+    rd.onload=function(e){
+      const img=new Image();
+      img.onload=function(){
+        const MAX=1400;
+        let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){ if(w>=h){h=Math.round(h*MAX/w);w=MAX;} else {w=Math.round(w*MAX/h);h=MAX;} }
+        const cv=document.createElement('canvas');
+        cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        EVID.push({data:cv.toDataURL('image/jpeg',0.72),w:w,h:h});
+        if(--pend===0)renderEvidencias();
+      };
+      img.onerror=function(){ if(--pend===0)renderEvidencias(); };
+      img.src=e.target.result;
+    };
+    rd.onerror=function(){ if(--pend===0)renderEvidencias(); };
+    rd.readAsDataURL(file);
+  });
+  input.value='';
+}
+function quitarEvidencia(i){EVID.splice(i,1);renderEvidencias();}
+function renderEvidencias(){
+  const cont=document.getElementById('evid-prev');
+  cont.innerHTML=EVID.map(function(f,i){
+    return '<div style="position:relative">'
+      +'<img src="'+f.data+'" style="width:100%;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e0">'
+      +'<button type="button" onclick="quitarEvidencia('+i+')" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:1;cursor:pointer">&#215;</button>'
+      +'</div>';
+  }).join('');
+  document.getElementById('evid-count').textContent=EVID.length?'('+EVID.length+')':'';
+}
+
 function getData(){
   const razones=[...document.querySelectorAll('.razon:checked')].map(c=>c.value).join(', ')||'—';
   return{
@@ -269,6 +321,7 @@ function getData(){
     observaciones:document.getElementById('observaciones').value,
     recolector:document.getElementById('rec-nombre').value,
     results:{...RES},
+    evidencias:EVID,
   };
 }
 
@@ -467,6 +520,43 @@ function generarPDF(d){
   doc.setDrawColor(...C.line);doc.setLineWidth(0.22);doc.line(ML,y,ML+sw,y);
   doc.setFontSize(5.8);doc.setTextColor(...C.fa);doc.text('Firma del donante',ML,y+3);
 
+  // ── HOJA DE EVIDENCIA FOTOGRAFICA ──────────────────────────────
+  if(d.evidencias&&d.evidencias.length){
+    const CW=(TW-6)/2;      // 2 columnas
+    const CH=78;            // alto maximo por foto
+    let col=0,ey=0;
+
+    function hojaEvidencia(){
+      doc.addPage();
+      doc.setFillColor(...C.hdrBg);doc.rect(0,0,PW,13,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...C.txt);
+      doc.text('EVIDENCIA FOTOGRAFICA',PW/2,6,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...C.mu);
+      doc.text('Transportes TECSA',PW/2,10.5,{align:'center'});
+      doc.setFontSize(6.5);doc.setTextColor(...C.fa);
+      doc.text('Folio: '+d.folio+'  |  '+d.operador,PW-MR,9,{align:'right'});
+      doc.setDrawColor(...C.line);doc.setLineWidth(0.25);doc.line(0,13,PW,13);
+      ey=17;col=0;
+    }
+
+    hojaEvidencia();
+    d.evidencias.forEach(function(f,i){
+      // Escalar la foto para que quepa en su celda sin deformarse
+      const esc=Math.min(CW/f.w,CH/f.h);
+      const iw=f.w*esc, ih=f.h*esc;
+      if(col===0&&ey+CH+10>PH-10) hojaEvidencia();
+      const x=ML+col*(CW+6);
+      const cx=x+(CW-iw)/2;   // centrada en su celda
+      try{doc.addImage(f.data,'JPEG',cx,ey,iw,ih);}catch(e){}
+      doc.setDrawColor(...C.lf);doc.setLineWidth(0.15);
+      doc.rect(cx,ey,iw,ih);
+      doc.setFontSize(5.8);doc.setTextColor(...C.fa);
+      doc.text('Evidencia '+(i+1),x,ey+CH+4);
+      col++;
+      if(col===2){col=0;ey+=CH+9;}
+    });
+  }
+
   const pages=doc.internal.getNumberOfPages();
   for(let p=1;p<=pages;p++){
     doc.setPage(p);
@@ -481,6 +571,9 @@ function generarPDF(d){
   const btn=document.getElementById('btn-guardar');
   btn.textContent='Guardar';
   btn.disabled=false;
+  // Vaciar evidencias para que no se arrastren al siguiente registro
+  EVID.length=0;
+  renderEvidencias();
 }
 </script>
 </body>
