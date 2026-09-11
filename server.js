@@ -321,6 +321,93 @@ app.post('/api/registrar-entrada', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // FORMULARIO TALLER — Guardar reporte + fotos + baja
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// REGISTRO DE EVIDENCIAS
+// Cada foto subida se anota con su fileId en la hoja "Evidencias".
+// Asi al reimprimir un reporte las fotos se descargan directo por ID,
+// sin recorrer carpetas de Drive. Los reportes viejos (sin registro)
+// caen al metodo de buscar la carpeta.
+// ═══════════════════════════════════════════════════════════════
+const HOJA_EVIDENCIAS = 'Evidencias';
+const HEADERS_EVID    = ['Folio','Tipo','Area','FileId','Nombre','Fecha'];
+
+async function registrarEvidencias(sheets, filas) {
+  if (!filas || !filas.length) return;
+  try {
+    try {
+      await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${HOJA_EVIDENCIAS}!A1` });
+    } catch {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: { requests: [{ addSheet: { properties: { title: HOJA_EVIDENCIAS } } }] }
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID, range: `${HOJA_EVIDENCIAS}!A1`,
+        valueInputOption: 'RAW', requestBody: { values: [HEADERS_EVID] }
+      });
+    }
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID, range: `${HOJA_EVIDENCIAS}!A:A`,
+      valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: filas }
+    });
+    console.log(`[Evidencias] ${filas.length} registradas`);
+  } catch(e) {
+    console.error('[Evidencias] No se pudieron registrar:', e.message);
+  }
+}
+
+// Devuelve [{area, fileId, nombre}] de un folio segun la hoja Evidencias
+async function evidenciasDeFolio(sheets, folio) {
+  try {
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID, range: `${HOJA_EVIDENCIAS}!A2:F`,
+    });
+    return (r.data.values || [])
+      .filter(row => String(row[0]).trim() === String(folio).trim())
+      .map(row => ({ area: row[2]||'', fileId: row[3]||'', nombre: row[4]||'' }))
+      .filter(e => e.fileId);
+  } catch(e) { return []; }
+}
+
+// Fallback para reportes viejos: recorre Unidad-X/*/fecha y lista imagenes
+async function buscarFotosEnDrive(drive, carpetaRaizId, unidad, fechaCarp) {
+  const out = [];
+  try {
+    const qU = `'${carpetaRaizId}' in parents and name='Unidad-${unidad}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const ru = await drive.files.list({ q: qU, fields:'files(id)', pageSize:1, supportsAllDrives:true, includeItemsFromAllDrives:true });
+    if (!ru.data.files.length) return out;
+    const idUnidad = ru.data.files[0].id;
+
+    const ra = await drive.files.list({
+      q: `'${idUnidad}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields:'files(id,name)', pageSize:100, supportsAllDrives:true, includeItemsFromAllDrives:true,
+    });
+    for (const area of ra.data.files) {
+      const rf = await drive.files.list({
+        q: `'${area.id}' in parents and name='${fechaCarp}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields:'files(id)', pageSize:1, supportsAllDrives:true, includeItemsFromAllDrives:true,
+      });
+      if (!rf.data.files.length) continue;
+      const rimg = await drive.files.list({
+        q: `'${rf.data.files[0].id}' in parents and trashed=false`,
+        fields:'files(id,name)', pageSize:100, supportsAllDrives:true, includeItemsFromAllDrives:true,
+      });
+      rimg.data.files.forEach(f => out.push({ area: area.name, fileId: f.id, nombre: f.name }));
+    }
+  } catch(e) { console.error('[Drive] buscarFotos:', e.message); }
+  return out;
+}
+
+// Descarga los bytes de una imagen de Drive
+async function descargarImagen(drive, fileId) {
+  const r = await drive.files.get(
+    { fileId, alt: 'media', supportsAllDrives: true },
+    { responseType: 'arraybuffer' }
+  );
+  return Buffer.from(r.data);
+}
+
 const HOJAS_TALLER = {
   mecanico:  'Reporte Taller Mecanico',
   electrico: 'Reporte Electrico',
@@ -373,6 +460,7 @@ app.post('/api/reporte-taller', async (req, res) => {
       carpRaiz = null;
     }
     const fechaCarp  = fecha.replace(/\//g, '-');
+    const evidencias = []; // [Folio, Tipo, Area, FileId, Nombre, Fecha]
 
     async function subirAreaFotos(area, items) {
       if (!carpRaiz || !items || !items.length) return;
@@ -388,7 +476,8 @@ app.post('/api/reporte-taller', async (req, res) => {
           for (const f of lista) {
             if (!f?.base64) continue;
             try {
-              await subirArchivo(drive, carpFecha, f.nombre||'foto.jpg', f.base64, 'image/jpeg');
+              const sub = await subirArchivo(drive, carpFecha, f.nombre||'foto.jpg', f.base64, 'image/jpeg');
+              evidencias.push([datos.folioEntrada||'', 'Taller', area, sub.id, f.nombre||'foto.jpg', fecha]);
             } catch(eFoto) {
               console.error(`[Taller] Foto perdida en ${area}: ${f.nombre} — ${eFoto.message}`);
             }
@@ -554,6 +643,7 @@ app.post('/api/reporte-taller', async (req, res) => {
         }));
     }
     await Promise.all(bajas);
+    await registrarEvidencias(sheets, evidencias);
 
     res.json({ ok: true });
   } catch(e) { console.error(e); res.json({ ok: false, error: e.message }); }
@@ -709,6 +799,7 @@ app.post('/api/auditoria', async (req, res) => {
     const carpFecha  = await getOCrearCarpeta(drive, carpUnidad, fechaCarp);
 
     // ── 2. Subir fotos de cada punto (secuencial, evita rate limit) ─
+    const evidenciasAud = [];
     for (const p of (datos.puntos || [])) {
       if (!p.fotos || !p.fotos.length) continue;
       const nombreBase = (p.nombre||'punto').replace(/[\/\\:*?"<>|]/g, '-');
@@ -716,12 +807,14 @@ app.post('/api/auditoria', async (req, res) => {
         if (!p.fotos[i]?.base64) continue;
         const nombre = i === 0 ? `${nombreBase}.jpg` : `${nombreBase}-${i+1}.jpg`;
         try {
-          await subirArchivo(drive, carpFecha, nombre, p.fotos[i].base64, 'image/jpeg');
+          const sub = await subirArchivo(drive, carpFecha, nombre, p.fotos[i].base64, 'image/jpeg');
+          evidenciasAud.push([datos.folio||'', 'Auditoria', p.nombre||'', sub.id, nombre, fecha]);
         } catch(eFoto) {
           console.error(`[Auditoria] Foto perdida "${nombre}": ${eFoto.message}`);
         }
       }
     }
+    await registrarEvidencias(sheets, evidenciasAud);
 
     // ── 3. Generar PDF con PDFKit ────────────────────────────
     const pdfBuffer = await generarPDFAuditoria(datos, fecha);
@@ -832,15 +925,20 @@ async function generarFolioProv(sheets) {
 // Sube fotos a Proveedores/Nombre/dd-MM-yyyy/ con nombres únicos
 // (timestamp en el nombre) para que NUNCA se sobreescriban.
 async function subirFotosProveedor(drive, nombreProveedor, fecha, fotos, prefijoNombre) {
-  if (!fotos || !fotos.length) return;
+  const subidas = [];
+  if (!fotos || !fotos.length) return subidas;
   const nombreLimpio = String(nombreProveedor).replace(/[\/\\:*?"<>|]/g, '-').trim();
   const carpProv  = await getOCrearCarpeta(drive, FOLDER_PROVEDORES, nombreLimpio);
   const carpFecha = await getOCrearCarpeta(drive, carpProv, fecha.replace(/\//g, '-'));
   for (let i = 0; i < fotos.length; i++) {
     if (!fotos[i]?.base64) continue;
     const nombre = `${prefijoNombre}-${Date.now()}-${i + 1}.jpg`;
-    await subirArchivo(drive, carpFecha, nombre, fotos[i].base64, 'image/jpeg').catch(e => console.error('Foto prov error:', e.message));
+    try {
+      const sub = await subirArchivo(drive, carpFecha, nombre, fotos[i].base64, 'image/jpeg');
+      subidas.push({ fileId: sub.id, nombre });
+    } catch(e) { console.error('Foto prov error:', e.message); }
   }
+  return subidas;
 }
 
 // ── Registrar entrada de proveedor ─────────────────────────────
@@ -858,7 +956,8 @@ app.post('/api/registrar-proveedor', async (req, res) => {
 
     // Foto de factura (si aplica)
     if (datos.factura === 'Si' && datos.facturaFotos?.length) {
-      await subirFotosProveedor(drive, datos.proveedor, fecha, datos.facturaFotos, 'Factura');
+      const subs = await subirFotosProveedor(drive, datos.proveedor, fecha, datos.facturaFotos, 'Factura');
+      await registrarEvidencias(sheets, subs.map(s => [folio, 'Proveedor', 'Factura', s.fileId, s.nombre, fecha]));
     }
 
     await sheets.spreadsheets.values.append({
@@ -924,7 +1023,8 @@ app.post('/api/salida-proveedor', async (req, res) => {
     const nombreProveedor = fila[3] || 'SinNombre';
 
     // Subir evidencias (carpeta del día de salida, nombres únicos)
-    await subirFotosProveedor(drive, nombreProveedor, fecha, fotos, 'Evidencia');
+    const subsSal = await subirFotosProveedor(drive, nombreProveedor, fecha, fotos, 'Evidencia');
+    await registrarEvidencias(sheets, subsSal.map(s => [fila[0]||'', 'Proveedor', 'Evidencia de salida', s.fileId, s.nombre, fecha]));
 
     // Actualizar: Estado, Fecha/Hora Salida, Trabajo Realizado (H:K)
     await sheets.spreadsheets.values.update({
@@ -1084,6 +1184,307 @@ app.post('/api/antidoping', async (req, res) => {
       nextFolio: folioNum + 1,
     });
   } catch(e) { console.error('[Antidoping] guardar:', e.message); res.json({ result:'error', error:e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CONSULTA E IMPRESION DE REPORTES FINALIZADOS
+// Lee lo que ya esta guardado en las hojas y arma un PDF:
+// la informacion distribuida en la primera hoja y las fotos
+// en hojas aparte con su titulo.
+// ═══════════════════════════════════════════════════════════════
+
+// Convierte una fila + sus encabezados en pares [etiqueta, valor],
+// omitiendo las 8 columnas comunes y los campos vacios.
+function paresDeFila(headers, fila) {
+  const out = [];
+  for (let i = 8; i < headers.length; i++) {
+    const val = fila[i];
+    if (val === undefined || val === null || String(val).trim() === '') continue;
+    if (String(val).trim() === 'No') continue;
+    out.push([headers[i], String(val)]);
+  }
+  return out;
+}
+
+// ── Listado de reportes finalizados ────────────────────────────
+app.get('/api/reportes', async (req, res) => {
+  try {
+    const tipo = req.query.tipo || 'taller';
+    const { sheets } = await getClients();
+
+    if (tipo === 'taller') {
+      const claves = Object.keys(HOJAS_TALLER);
+      const rangos = claves.map(k => `${HOJAS_TALLER[k]}!A2:BZ`);
+      const r = await sheets.spreadsheets.values.batchGet({ spreadsheetId: SHEET_ID, ranges: rangos })
+        .catch(() => ({ data: { valueRanges: [] } }));
+      const porFolio = {};
+      (r.data.valueRanges || []).forEach((vr, idx) => {
+        const clave = claves[idx];
+        (vr.values || []).forEach(fila => {
+          const folio = String(fila[0] || '').trim();
+          if (!folio) return;
+          if (!porFolio[folio]) porFolio[folio] = {
+            folio, fecha: fila[1]||'', hora: fila[2]||'', unidad: fila[3]||'',
+            operador: fila[4]||'', planta: fila[5]||'', areaServicio: fila[6]||'',
+            mecanico: fila[7]||'', areas: [],
+          };
+          porFolio[folio].areas.push(HOJAS_TALLER[clave]);
+        });
+      });
+      const lista = Object.values(porFolio).sort((a,b) => b.folio.localeCompare(a.folio));
+      return res.json({ ok:true, reportes: lista });
+    }
+
+    if (tipo === 'auditoria') {
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Auditorias!A2:Z' })
+        .catch(() => ({ data: { values: [] } }));
+      const lista = (r.data.values || []).map(f => ({
+        folio: f[0]||'', fecha: f[1]||'', hora: f[2]||'', unidad: f[3]||'',
+        operador: f[4]||'', planta: f[5]||'', auditor: f[6]||'', kilometraje: f[7]||'',
+      })).filter(x => x.folio).reverse();
+      return res.json({ ok:true, reportes: lista });
+    }
+
+    if (tipo === 'proveedor') {
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID_PROVEDORES, range: 'A2:K' })
+        .catch(() => ({ data: { values: [] } }));
+      const lista = (r.data.values || []).map((f, i) => ({
+        rowIndex: i+2, folio: f[0]||'', fecha: f[1]||'', hora: f[2]||'',
+        proveedor: f[3]||'', piezas: f[4]||'', trabajo: f[5]||'', factura: f[6]||'',
+        estado: f[7]||'', fechaSalida: f[8]||'', horaSalida: f[9]||'', trabajoRealizado: f[10]||'',
+      })).filter(x => x.folio && x.estado === 'BAJA').reverse();
+      return res.json({ ok:true, reportes: lista });
+    }
+
+    res.json({ ok:false, error:'Tipo no valido' });
+  } catch(e) { console.error('[Reportes]', e.message); res.json({ ok:false, error:e.message }); }
+});
+
+// ── PDF de un reporte ──────────────────────────────────────────
+function armarPDFReporte(info, fotos) {
+  return new Promise((resolve, reject) => {
+    // bufferPages permite volver atras para numerar las paginas al final
+    const doc = new PDFDocument({ size:'LETTER', margin:36, bufferPages:true });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    doc.on('end',  () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const AZUL = '#16213e';
+    const W = doc.page.width - 72;
+
+    function encabezado(titulo, subtitulo) {
+      doc.fontSize(15).font('Helvetica-Bold').fillColor('#000000')
+         .text(titulo, 0, 30, { align:'center' });
+      try {
+        doc.image(Buffer.from(LOGO_BASE64,'base64'), 36, 54, { width:80, height:32 });
+      } catch(e) {}
+      if (subtitulo) {
+        doc.fontSize(9).font('Helvetica').fillColor('#555555')
+           .text(subtitulo, 130, 58, { width: W-100 });
+      }
+      doc.y = 94;
+    }
+
+    encabezado(info.titulo, info.subtitulo);
+
+    // Datos generales en dos columnas
+    const COL_W = W/2;
+    let yG = doc.y;
+    info.generales.forEach((par, i) => {
+      const x = 36 + (i % 2) * COL_W;
+      if (i % 2 === 0 && i > 0) yG += 22;
+      doc.fontSize(7).font('Helvetica').fillColor('#888888')
+         .text(String(par[0]).toUpperCase(), x, yG, { width: COL_W-10, lineBreak:false });
+      doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#000000')
+         .text(String(par[1]||'—'), x, yG+7, { width: COL_W-10, lineBreak:false });
+    });
+    doc.y = yG + 30;
+
+    // Secciones con sus campos
+    info.secciones.forEach(sec => {
+      if (!sec.campos.length) return;
+      if (doc.y + 40 > doc.page.height - 60) doc.addPage();
+      doc.rect(36, doc.y, W, 15).fill(AZUL);
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#ffffff')
+         .text(sec.nombre.toUpperCase(), 40, doc.y + 4.5, { lineBreak:false });
+      doc.y += 20;
+      doc.fillColor('#000000');
+
+      sec.campos.forEach(par => {
+        const etiqueta = String(par[0]);
+        const valor    = String(par[1]);
+        const alto = doc.heightOfString(valor, { width: W-150, align:'left' });
+        if (doc.y + alto + 6 > doc.page.height - 50) doc.addPage();
+        const y0 = doc.y;
+        doc.fontSize(8).font('Helvetica').fillColor('#666666')
+           .text(etiqueta, 40, y0, { width: 140 });
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000')
+           .text(valor, 185, y0, { width: W-155 });
+        doc.y = y0 + Math.max(alto, 11) + 4;
+        doc.moveTo(40, doc.y-2).lineTo(36+W, doc.y-2).lineWidth(0.3).stroke('#e8e8e8');
+      });
+      doc.y += 8;
+    });
+
+    // ── Hojas de fotos ───────────────────────────────────────
+    if (fotos && fotos.length) {
+      const CW = (W - 12) / 2, CH = 76;
+      let col = 0, yF = 0;
+
+      function hojaFotos() {
+        doc.addPage();
+        doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000')
+           .text('EVIDENCIA FOTOGRAFICA', 0, 34, { align:'center' });
+        doc.fontSize(8.5).font('Helvetica').fillColor('#666666')
+           .text(info.subtitulo || '', 0, 52, { align:'center' });
+        doc.moveTo(36, 66).lineTo(36+W, 66).lineWidth(0.5).stroke('#cccccc');
+        yF = 74; col = 0;
+      }
+
+      hojaFotos();
+      fotos.forEach(f => {
+        if (col === 0 && yF + CH + 14 > doc.page.height - 40) hojaFotos();
+        const x = 36 + col * (CW + 12);
+        try {
+          doc.image(f.buffer, x, yF, { fit:[CW, CH], align:'center', valign:'center' });
+          doc.rect(x, yF, CW, CH).lineWidth(0.4).stroke('#dddddd');
+        } catch(e) {
+          doc.fontSize(7).fillColor('#999999').text('(imagen no disponible)', x, yF+CH/2);
+        }
+        doc.fontSize(7).font('Helvetica').fillColor('#666666')
+           .text(f.area || '', x, yF + CH + 3, { width: CW, lineBreak:false });
+        col++;
+        if (col === 2) { col = 0; yF += CH + 14; }
+      });
+    }
+
+    // Pie de pagina
+    const total = doc.bufferedPageRange().count;
+    for (let i = 0; i < total; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(7).font('Helvetica').fillColor('#999999')
+         .text(`${info.folio}  —  TECSA Transportes  —  Pag. ${i+1} de ${total}`,
+               36, doc.page.height - 46,
+               { width: W, align:'center', lineBreak:false });
+    }
+
+    doc.end();
+  });
+}
+
+app.get('/api/reporte-pdf', async (req, res) => {
+  try {
+    const tipo  = req.query.tipo  || 'taller';
+    const folio = req.query.folio;
+    if (!folio) return res.status(400).send('Falta folio');
+
+    const { sheets, drive } = await getClients();
+    let info = null;
+    let unidad = '', fechaRep = '';
+
+    if (tipo === 'taller') {
+      const claves = Object.keys(HOJAS_TALLER);
+      const r = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId: SHEET_ID, ranges: claves.map(k => `${HOJAS_TALLER[k]}!A1:BZ`),
+      });
+      const secciones = [];
+      let gen = null;
+      (r.data.valueRanges || []).forEach((vr, idx) => {
+        const filas = vr.values || [];
+        if (filas.length < 2) return;
+        const headers = filas[0];
+        const fila = filas.slice(1).find(f => String(f[0]||'').trim() === String(folio).trim());
+        if (!fila) return;
+        if (!gen) gen = fila;
+        const campos = paresDeFila(headers, fila);
+        if (campos.length) secciones.push({ nombre: HOJAS_TALLER[claves[idx]], campos });
+      });
+      if (!gen) return res.status(404).send('Reporte no encontrado');
+      unidad = gen[3] || ''; fechaRep = gen[1] || '';
+      info = {
+        folio, titulo: 'REPORTE DE TALLER',
+        subtitulo: `Unidad ${unidad}  |  Folio ${folio}  |  ${fechaRep}`,
+        generales: [
+          ['Folio', folio], ['Fecha', gen[1]], ['Hora', gen[2]], ['Unidad', gen[3]],
+          ['Operador', gen[4]], ['Planta', gen[5]], ['Area de servicio', gen[6]], ['Mecanico', gen[7]],
+        ],
+        secciones,
+      };
+    }
+
+    else if (tipo === 'auditoria') {
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Auditorias!A1:AZ' });
+      const filas = r.data.values || [];
+      const headers = filas[0] || [];
+      const fila = filas.slice(1).find(f => String(f[0]||'').trim() === String(folio).trim());
+      if (!fila) return res.status(404).send('Auditoria no encontrada');
+      unidad = fila[3] || ''; fechaRep = fila[1] || '';
+      const puntos = [];
+      for (let i = 8; i < headers.length; i++) {
+        if (String(headers[i]).toUpperCase() === 'PDF') continue;
+        const val = fila[i];
+        if (val === undefined || String(val).trim() === '') continue;
+        puntos.push([headers[i], String(val)]);
+      }
+      info = {
+        folio, titulo: 'AUDITORIA GENERAL',
+        subtitulo: `Unidad ${unidad}  |  Folio ${folio}  |  ${fechaRep}`,
+        generales: [
+          ['Folio', folio], ['Fecha', fila[1]], ['Hora', fila[2]], ['Unidad', fila[3]],
+          ['Operador', fila[4]], ['Planta', fila[5]], ['Auditor', fila[6]], ['Kilometraje', fila[7]],
+        ],
+        secciones: [{ nombre: 'Puntos de revision', campos: puntos }],
+      };
+    }
+
+    else if (tipo === 'proveedor') {
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID_PROVEDORES, range: 'A2:K' });
+      const fila = (r.data.values || []).find(f => String(f[0]||'').trim() === String(folio).trim());
+      if (!fila) return res.status(404).send('Proveedor no encontrado');
+      fechaRep = fila[1] || '';
+      info = {
+        folio, titulo: 'REPORTE DE PROVEEDOR EXTERNO',
+        subtitulo: `${fila[3]||''}  |  Folio ${folio}  |  ${fechaRep}`,
+        generales: [
+          ['Folio', folio], ['Proveedor', fila[3]], ['Fecha entrada', fila[1]], ['Hora entrada', fila[2]],
+          ['Fecha salida', fila[8]], ['Hora salida', fila[9]], ['Factura', fila[6]], ['Estado', fila[7]],
+        ],
+        secciones: [{ nombre: 'Detalle del trabajo', campos: [
+          ['Piezas que ingresa', fila[4]||'—'],
+          ['Trabajo a realizar', fila[5]||'—'],
+          ['Trabajo realizado',  fila[10]||'—'],
+        ]}],
+      };
+    }
+
+    else return res.status(400).send('Tipo no valido');
+
+    // ── Fotos: primero el registro, si no hay se busca en Drive ──
+    let refs = await evidenciasDeFolio(sheets, folio);
+    if (!refs.length && tipo === 'taller' && unidad && fechaRep) {
+      refs = await buscarFotosEnDrive(drive, FOLDER_RAIZ, unidad, fechaRep.replace(/\//g,'-'));
+    }
+    if (!refs.length && tipo === 'auditoria' && unidad && fechaRep) {
+      refs = await buscarFotosEnDrive(drive, FOLDER_AUDITORIAS, unidad, fechaRep.replace(/\//g,'-'));
+    }
+
+    const fotos = [];
+    for (const ref of refs.slice(0, 40)) { // tope para no tardar demasiado
+      try {
+        fotos.push({ area: ref.area, buffer: await descargarImagen(drive, ref.fileId) });
+      } catch(e) { console.error('[ReportePDF] foto:', ref.fileId, e.message); }
+    }
+
+    const pdf = await armarPDFReporte(info, fotos);
+    const nombre = `${tipo}_${String(folio).replace(/\//g,'-')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombre}"`);
+    res.send(pdf);
+  } catch(e) {
+    console.error('[ReportePDF]', e.message);
+    res.status(500).send('Error generando PDF: ' + e.message);
+  }
 });
 
 // ── Catch-all ──────────────────────────────────────────────────
