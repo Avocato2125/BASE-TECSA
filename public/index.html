@@ -96,6 +96,8 @@
   .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
   .section-title  { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:600; display:flex; align-items:center; gap:8px; }
   .count-badge    { background:rgba(232,184,75,0.12); border:1px solid rgba(232,184,75,0.25); color:var(--accent); border-radius:12px; padding:2px 10px; font-size:12px; font-family:'IBM Plex Mono',monospace; }
+  .btn-reportes { background:rgba(232,184,75,0.08); border:1px solid rgba(232,184,75,0.3); border-radius:8px; padding:8px 16px; color:var(--accent); font-size:13px; font-weight:500; cursor:pointer; transition:all 0.18s; font-family:'Inter',sans-serif; text-decoration:none; white-space:nowrap; }
+  .btn-reportes:hover { background:rgba(232,184,75,0.18); border-color:var(--accent); }
   .btn-refresh    { background:transparent; border:1px solid var(--border); border-radius:8px; padding:7px 14px; color:var(--muted); font-size:13px; cursor:pointer; transition:all 0.18s; font-family:'Inter',sans-serif; }
   .btn-refresh:hover { border-color:var(--accent); color:var(--accent); }
 
@@ -198,7 +200,8 @@
     <div class="topbar-brand">TECSA</div>
     <div class="topbar-sub">Control de Base</div>
   </div>
-  <div class="topbar-right">
+  <div class="topbar-right" style="display:flex;align-items:center;gap:16px;">
+    <a href="/reportes.html" class="btn-reportes">Reportes finalizados</a>
     <div class="clock" id="clockDisplay">--:--:--</div>
   </div>
 </div>
