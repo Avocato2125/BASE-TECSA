@@ -1236,12 +1236,26 @@ app.get('/api/reportes', async (req, res) => {
     }
 
     if (tipo === 'auditoria') {
-      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Auditorias!A2:Z' })
-        .catch(() => ({ data: { values: [] } }));
-      const lista = (r.data.values || []).map(f => ({
-        folio: f[0]||'', fecha: f[1]||'', hora: f[2]||'', unidad: f[3]||'',
-        operador: f[4]||'', planta: f[5]||'', auditor: f[6]||'', kilometraje: f[7]||'',
-      })).filter(x => x.folio).reverse();
+      // Leemos con FORMULA para poder extraer la URL del =HYPERLINK(...)
+      // y el rango llega hasta BZ porque la columna del PDF es la 36.
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID, range: 'Auditorias!A2:BZ', valueRenderOption: 'FORMULA',
+      }).catch(() => ({ data: { values: [] } }));
+      const lista = (r.data.values || []).map(f => {
+        // El PDF es la ultima celda con contenido de la fila
+        let pdfUrl = '';
+        for (let i = f.length - 1; i >= 8; i--) {
+          const celda = String(f[i] || '');
+          const m = celda.match(/HYPERLINK\("([^"]+)"/i);
+          if (m) { pdfUrl = m[1]; break; }
+          if (/^https?:\/\//i.test(celda)) { pdfUrl = celda; break; }
+        }
+        return {
+          folio: f[0]||'', fecha: f[1]||'', hora: f[2]||'', unidad: f[3]||'',
+          operador: f[4]||'', planta: f[5]||'', auditor: f[6]||'', kilometraje: f[7]||'',
+          pdfUrl,
+        };
+      }).filter(x => x.folio).reverse();
       return res.json({ ok:true, reportes: lista });
     }
 
@@ -1373,6 +1387,15 @@ function armarPDFReporte(info, fotos) {
   });
 }
 
+// Corta una promesa si excede el tiempo dado. Evita que una consulta
+// lenta a Drive deje el reporte generandose para siempre.
+function conTiempoLimite(promesa, ms) {
+  return Promise.race([
+    promesa,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('Tiempo de espera agotado')), ms)),
+  ]);
+}
+
 app.get('/api/reporte-pdf', async (req, res) => {
   try {
     const tipo  = req.query.tipo  || 'taller';
@@ -1461,19 +1484,45 @@ app.get('/api/reporte-pdf', async (req, res) => {
     else return res.status(400).send('Tipo no valido');
 
     // ── Fotos: primero el registro, si no hay se busca en Drive ──
-    let refs = await evidenciasDeFolio(sheets, folio);
-    if (!refs.length && tipo === 'taller' && unidad && fechaRep) {
-      refs = await buscarFotosEnDrive(drive, FOLDER_RAIZ, unidad, fechaRep.replace(/\//g,'-'));
-    }
-    if (!refs.length && tipo === 'auditoria' && unidad && fechaRep) {
-      refs = await buscarFotosEnDrive(drive, FOLDER_AUDITORIAS, unidad, fechaRep.replace(/\//g,'-'));
-    }
-
+    // Si el usuario ya acepto generar sin fotos, nos saltamos todo esto.
+    const sinFotos = req.query.sinFotos === '1';
     const fotos = [];
-    for (const ref of refs.slice(0, 40)) { // tope para no tardar demasiado
+
+    if (!sinFotos) {
+      let refs = [];
       try {
-        fotos.push({ area: ref.area, buffer: await descargarImagen(drive, ref.fileId) });
-      } catch(e) { console.error('[ReportePDF] foto:', ref.fileId, e.message); }
+        // Tope de tiempo para localizar las fotos: si Drive tarda o la
+        // carpeta no existe, no dejamos el reporte colgado indefinidamente.
+        refs = await conTiempoLimite((async () => {
+          let r = await evidenciasDeFolio(sheets, folio);
+          if (!r.length && tipo === 'taller' && unidad && fechaRep) {
+            r = await buscarFotosEnDrive(drive, FOLDER_RAIZ, unidad, fechaRep.replace(/\//g,'-'));
+          }
+          if (!r.length && tipo === 'auditoria' && unidad && fechaRep) {
+            r = await buscarFotosEnDrive(drive, FOLDER_AUDITORIAS, unidad, fechaRep.replace(/\//g,'-'));
+          }
+          return r;
+        })(), 15000);
+      } catch(e) {
+        console.error('[ReportePDF] busqueda de fotos:', e.message);
+        refs = [];
+      }
+
+      for (const ref of refs.slice(0, 40)) { // tope para no tardar demasiado
+        try {
+          const buffer = await conTiempoLimite(descargarImagen(drive, ref.fileId), 12000);
+          fotos.push({ area: ref.area, buffer });
+        } catch(e) { console.error('[ReportePDF] foto:', ref.fileId, e.message); }
+      }
+
+      // Sin ninguna foto recuperada: en vez de devolver un PDF incompleto
+      // sin avisar, el front pregunta si se genera igual.
+      if (!fotos.length) {
+        return res.status(409).json({
+          ok: false, sinFotos: true,
+          error: 'No se pudieron obtener las fotografias de este reporte.'
+        });
+      }
     }
 
     const pdf = await armarPDFReporte(info, fotos);

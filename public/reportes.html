@@ -264,23 +264,69 @@ function render() {
 
 // El PDF tarda unos segundos porque descarga las fotos de Drive,
 // por eso se avisa en el boton mientras se genera.
+// Auditorias: el PDF ya existe en Drive, solo lo abrimos.
+// Taller/Proveedor: lo genera el servidor, puede tardar si trae fotos.
 async function abrirPDF(btn, folioEnc) {
+  var folio = decodeURIComponent(folioEnc);
+
+  if (TIPO === 'auditoria') {
+    var rep = DATOS.find(function(r){ return String(r.folio) === folio; });
+    if (rep && rep.pdfUrl) window.open(rep.pdfUrl, '_blank');
+    else alert('Esta auditoria no tiene PDF guardado en Drive.');
+    return;
+  }
+
   var original = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Generando...';
+
   try {
-    var url = API + '/api/reporte-pdf?tipo=' + TIPO + '&folio=' + folioEnc;
-    var res = await fetch(url);
-    if (!res.ok) throw new Error(await res.text());
-    var blob = await res.blob();
-    var obj  = URL.createObjectURL(blob);
-    window.open(obj, '_blank');
-    setTimeout(function(){ URL.revokeObjectURL(obj); }, 60000);
+    await pedirPDF(folioEnc, false);
   } catch(e) {
-    alert('No se pudo generar el PDF: ' + e.message);
+    if (e && e.sinFotos) {
+      // El servidor no pudo recuperar las fotos: preguntamos antes de seguir
+      btn.disabled = false;
+      btn.textContent = original;
+      var seguir = confirm(
+        'Fotos no disponibles para este reporte.\n\n' +
+        'Desea generar el reporte sin fotografias?'
+      );
+      if (!seguir) return;
+      btn.disabled = true;
+      btn.textContent = 'Generando...';
+      try {
+        await pedirPDF(folioEnc, true);
+      } catch(e2) {
+        alert('No se pudo generar el PDF: ' + (e2.message || e2));
+      }
+    } else {
+      alert('No se pudo generar el PDF: ' + (e.message || e));
+    }
   }
+
   btn.disabled = false;
   btn.textContent = original;
+}
+
+// Descarga el PDF como blob para poder leer los errores del servidor
+// (window.open no permite distinguir un PDF de un mensaje de error).
+async function pedirPDF(folioEnc, sinFotos) {
+  var url = API + '/api/reporte-pdf?tipo=' + TIPO + '&folio=' + folioEnc
+          + (sinFotos ? '&sinFotos=1' : '');
+  var res = await fetch(url);
+
+  if (res.status === 409) {
+    var data = await res.json().catch(function(){ return {}; });
+    var err  = new Error(data.error || 'Sin fotos');
+    err.sinFotos = true;
+    throw err;
+  }
+  if (!res.ok) throw new Error(await res.text());
+
+  var blob = await res.blob();
+  var obj  = URL.createObjectURL(blob);
+  window.open(obj, '_blank');
+  setTimeout(function(){ URL.revokeObjectURL(obj); }, 60000);
 }
 
 cargar();
