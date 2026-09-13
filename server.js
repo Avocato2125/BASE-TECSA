@@ -1236,16 +1236,27 @@ app.get('/api/reportes', async (req, res) => {
     }
 
     if (tipo === 'auditoria') {
-      // Leemos con FORMULA para poder extraer la URL del =HYPERLINK(...)
-      // y el rango llega hasta BZ porque la columna del PDF es la 36.
-      const r = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID, range: 'Auditorias!A2:BZ', valueRenderOption: 'FORMULA',
-      }).catch(() => ({ data: { values: [] } }));
-      const lista = (r.data.values || []).map(f => {
-        // El PDF es la ultima celda con contenido de la fila
+      // Dos lecturas: la formateada da fecha/hora legibles y la de formula
+      // permite sacar la URL de dentro del =HYPERLINK(...). El rango llega
+      // hasta BZ porque la columna del PDF es la 36.
+      const [rFmt, rForm] = await Promise.all([
+        sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID, range: 'Auditorias!A2:BZ',
+        }).catch(() => ({ data: { values: [] } })),
+        sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID, range: 'Auditorias!A2:BZ', valueRenderOption: 'FORMULA',
+        }).catch(() => ({ data: { values: [] } })),
+      ]);
+
+      const filasFmt  = rFmt.data.values  || [];
+      const filasForm = rForm.data.values || [];
+
+      const lista = filasFmt.map((f, i) => {
+        // El PDF es la ultima celda de la fila que contenga un enlace
+        const crudo = filasForm[i] || [];
         let pdfUrl = '';
-        for (let i = f.length - 1; i >= 8; i--) {
-          const celda = String(f[i] || '');
+        for (let c = crudo.length - 1; c >= 8; c--) {
+          const celda = String(crudo[c] || '');
           const m = celda.match(/HYPERLINK\("([^"]+)"/i);
           if (m) { pdfUrl = m[1]; break; }
           if (/^https?:\/\//i.test(celda)) { pdfUrl = celda; break; }
@@ -1256,6 +1267,7 @@ app.get('/api/reportes', async (req, res) => {
           pdfUrl,
         };
       }).filter(x => x.folio).reverse();
+
       return res.json({ ok:true, reportes: lista });
     }
 
