@@ -912,15 +912,29 @@
             </div>
             <div class="sub-cond" id="cond-muelles">
               <div class="sub-label">Detalles — Cambio de Muelles</div>
-              <div class="field"><label>Hoja(s) cambiada(s) — si son las 5 es muelle completo</label>
-                <div class="sino-row" style="flex-wrap:wrap;gap:8px;">
-                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">1</button>
-                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">2</button>
-                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">3</button>
-                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">4</button>
-                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:52px;" onclick="toggleHoja(this)">5</button>
+              <div class="field"><label>Posicion del muelle</label>
+                <div class="sino-row">
+                  <button type="button" class="sino-btn pos-btn" onclick="setPosMuelle(this,'Delantero')">Delantero</button>
+                  <button type="button" class="sino-btn pos-btn" onclick="setPosMuelle(this,'Trasero')">Trasero</button>
+                  <button type="button" class="sino-btn pos-btn" onclick="setPosMuelle(this,'Ambos')">Ambos</button>
                 </div>
-                <div id="muellesCompletoLbl" style="display:none;font-size:12px;color:var(--green);margin-top:6px;">Muelle completo (5 hojas)</div>
+              </div>
+              <div class="field"><label>Hoja(s) cambiada(s) — si son las 12 es muelle completo</label>
+                <div class="sino-row" style="flex-wrap:wrap;gap:8px;">
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">1</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">2</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">3</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">4</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">5</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">6</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">7</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">8</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">9</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">10</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">11</button>
+                  <button type="button" class="sino-btn hoja-btn" style="flex:0 0 auto;min-width:48px;" onclick="toggleHoja(this)">12</button>
+                </div>
+                <div id="muellesCompletoLbl" style="display:none;font-size:12px;color:var(--green);margin-top:6px;">Muelle completo (12 hojas)</div>
               </div>
               <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
               <div class="foto-slot" id="slot-foto-muelles-antes">
@@ -1201,8 +1215,17 @@ function toggleHoja(el) {
   el.classList.toggle('sel-si');
   var sel = hojasSeleccionadas();
   var lbl = document.getElementById('muellesCompletoLbl');
-  if (lbl) lbl.style.display = sel.length === 5 ? 'block' : 'none';
+  if (lbl) lbl.style.display = sel.length === 12 ? 'block' : 'none';
 }
+// Posicion del muelle: una sola opcion (Delantero / Trasero / Ambos)
+var posMuelle = null;
+function setPosMuelle(btn, valor) {
+  posMuelle = valor;
+  var fila = btn.closest('.sino-row');
+  fila.querySelectorAll('.pos-btn').forEach(function(b){ b.classList.remove('sel-si'); });
+  btn.classList.add('sel-si');
+}
+
 function hojasSeleccionadas() {
   return Array.from(document.querySelectorAll('.hoja-btn.sel-si')).map(function(b){ return b.textContent.trim(); });
 }
@@ -1659,7 +1682,13 @@ async function enviarReporte() {
         }
         // 3c. Hojas de muelle: al menos una seleccionada
         if (item.hojasReq && hojasSeleccionadas().length === 0) {
-          mostrarError('En "' + sec.nombre + ' → ' + item.label + '" selecciona al menos una hoja (1-5).');
+          mostrarError('En "' + sec.nombre + ' → ' + item.label + '" selecciona al menos una hoja (1-12).');
+          document.getElementById('cond-muelles').scrollIntoView({ behavior:'smooth', block:'center' });
+          return;
+        }
+        // 3d. Posicion del muelle obligatoria
+        if (item.hojasReq && !posMuelle) {
+          mostrarError('En "' + sec.nombre + ' → ' + item.label + '" indica si el muelle es Delantero, Trasero o Ambos.');
           document.getElementById('cond-muelles').scrollIntoView({ behavior:'smooth', block:'center' });
           return;
         }
@@ -1870,7 +1899,8 @@ async function enviarReporte() {
         activo: document.getElementById('body-susp').classList.contains('open'),
         muelles: estadoSino['muelles'] === 'si' ? {
           hojas:    hojasSeleccionadas(),
-          completo: hojasSeleccionadas().length === 5,
+          completo: hojasSeleccionadas().length === 12,
+          posicion: posMuelle || '',
           fotos:    await procesarFotosPar('foto-muelles'),
           obs:      val('muelles-obs')
         } : null,

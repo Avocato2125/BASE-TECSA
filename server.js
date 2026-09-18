@@ -435,7 +435,7 @@ const HEADERS_TALLER = {
   imagen:    ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Calcas-Mat','Calcas-Obs','Asiento-Mat','Asiento-Obs','Pintura-Area','Pintura-Mat','Pintura-Obs','Soldadura-Mat','Soldadura-Obs','Piezas-Imagen','Obs-Imagen'],
   llantas:   ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Llanta-Marca','Llanta-Obs','LlantaRep-Vida','LlantaRep-Obs','Obs-Llantas'],
   llenado:   ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Aceite-LitAnt','Aceite-LitPuestos','Aceite-LitDespues','Aceite-Obs','Adblue-LitAnt','Adblue-LitPuestos','Adblue-LitDespues','Adblue-Obs','LiqFrenos-LitAnt','LiqFrenos-LitPuestos','LiqFrenos-LitDespues','LiqFrenos-Obs','Anticong-LitAnt','Anticong-LitPuestos','Anticong-LitDespues','Anticong-Obs','Gasolina-LitAnt','Gasolina-LitPuestos','Gasolina-LitDespues','Gasolina-Obs','Direccion-LitAnt','Direccion-LitPuestos','Direccion-LitDespues','Direccion-Obs','Obs-Llenado'],
-  suspension:['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Muelles','Muelles-Hojas','Muelles-Obs','Amortiguadores','Amortiguadores-Obs','Piezas-Suspension','Obs-Suspension'],
+  suspension:['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Muelles','Muelles-Hojas','Muelles-Obs','Amortiguadores','Amortiguadores-Obs','Piezas-Suspension','Obs-Suspension','Muelles-Posicion'],
 };
 
 function v(obj, key) { return (obj && obj[key] != null) ? String(obj[key]) : ''; }
@@ -594,7 +594,8 @@ app.post('/api/reporte-taller', async (req, res) => {
       sp.amortiguadores ? 'Si' : 'No',
       v(sp.amortiguadores,'obs'),
       piezasTexto(sp.piezas),
-      sp.obsGral||''
+      sp.obsGral||'',
+      v(sp.muelles,'posicion'),
     ];
 
     const tieneContenido = row => row.slice(8).some(c => c !== '' && c != null);
