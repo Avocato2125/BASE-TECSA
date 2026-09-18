@@ -1283,7 +1283,8 @@ async function cargarUnidadesTaller() {
     enTaller.forEach(function(u) {
       var opt = document.createElement('option');
       opt.value = JSON.stringify(u);
-      opt.textContent = u.unidad + ' — ' + (u.folioTaller || u.folio) + ' (' + u.operador + ')';
+      opt.textContent = u.unidad + ' — ' + (u.folioTaller || u.folio) + ' (' + u.operador + ')'
+                      + (u.fecha ? '  ·  ' + u.fecha + ' ' + (u.hora || '') : '');
       select.appendChild(opt);
     });
 

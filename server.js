@@ -225,21 +225,34 @@ app.get('/api/unidades', async (req, res) => {
     const rowsE = resE.data.values || [];
     const rowsT = resT.data.values || [];
 
-    const tallerMap = {};
+    // Cruce por FOLIO, no por unidad: si la misma unidad tiene dos registros
+    // activos, la llave por unidad hacia que el segundo pisara al primero y
+    // ambas entradas mostraban el mismo folio de taller.
+    const tallerPorFolio  = {};
+    const tallerPorUnidad = {};   // respaldo para filas antiguas sin folio
     rowsT.forEach((row, i) => {
+      if ((row[8] || '') !== 'ACTIVO') return;
+      const folio  = (row[0] || '').toString().trim();
       const unidad = (row[3] || '').toString().toUpperCase().trim();
-      if ((row[8] || '') === 'ACTIVO' && unidad) {
-        tallerMap[unidad] = {
-          folioTaller: row[0] || '', planta: row[5] || '',
-          areaServicio: row[6] || '', reporteFalla: row[7] || '',
-          rowIndexTaller: i + 2,
-        };
-      }
+      const datos  = {
+        folioTaller: folio, planta: row[5] || '',
+        areaServicio: row[6] || '', reporteFalla: row[7] || '',
+        rowIndexTaller: i + 2,
+      };
+      if (folio)  tallerPorFolio[folio] = datos;
+      if (unidad && !tallerPorUnidad[unidad]) tallerPorUnidad[unidad] = datos;
     });
 
     const activos = rowsE.map((row, i) => {
       const unidad = (row[3] || '').toString().toUpperCase().trim();
-      const t = tallerMap[unidad] || null;
+      const folio  = (row[0] || '').toString().trim();
+      // Primero por folio; solo si no hay coincidencia se usa el respaldo,
+      // y ese registro se consume para que no lo tome otra entrada.
+      let t = tallerPorFolio[folio] || null;
+      if (!t && tallerPorUnidad[unidad]) {
+        t = tallerPorUnidad[unidad];
+        delete tallerPorUnidad[unidad];
+      }
       return {
         rowIndex: i + 2, folio: row[0] || '', fecha: row[1] || '',
         hora: row[2] || '', unidad, operador: row[4] || '',
@@ -417,7 +430,7 @@ const HOJAS_TALLER = {
   suspension:'Suspension',
 };
 const HEADERS_TALLER = {
-  mecanico:  ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Aceite-Km','Aceite-CapTeorica','Aceite-LitAnt','Aceite-NivelBajo','Aceite-LitNuevo','Aceite-Obs','Frenos-Obs','Engrasado','Engrasado-Obs','SrvAceite-Km','SrvAceite-Cap','SrvAceite-LitAnt','SrvAceite-NivelBajo','SrvAceite-LitNuevo','SrvAceite-Obs','Filtro-Aire','FiltroAire-Obs','Filtro-Diesel','FiltroDiesel-Obs','Filtro-Aceite','FiltroAceite-Obs','Filtro-Agua','FiltroAgua-Obs','Afinacion-Km','Afinacion-Piezas','Afinacion-Mat','Afinacion-Obs','Piezas-Taller','Ajuste','Obs-Taller'],
+  mecanico:  ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Aceite-Km','Aceite-CapTeorica','Aceite-LitAnt','Aceite-NivelBajo','Aceite-LitNuevo','Aceite-Obs','Frenos-Obs','Engrasado','Engrasado-Obs','SrvAceite-Km','SrvAceite-Cap','SrvAceite-LitAnt','SrvAceite-NivelBajo','SrvAceite-LitNuevo','SrvAceite-Obs','Filtro-Aire','FiltroAire-Obs','Filtro-Diesel','FiltroDiesel-Obs','Filtro-Aceite','FiltroAceite-Obs','Filtro-Separador','FiltroSep-Obs','Afinacion-Km','Afinacion-Piezas','Afinacion-Mat','Afinacion-Obs','Piezas-Taller','Ajuste','Obs-Taller'],
   electrico: ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Carga-Bat-VoltAnt','Carga-Bat-VoltNuevo','Carga-Bat-Obs','Cambio-Bat-Motivo','Cambio-Bat-Obs','Piezas-Electrico','Obs-Electrico'],
   imagen:    ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Calcas-Mat','Calcas-Obs','Asiento-Mat','Asiento-Obs','Pintura-Area','Pintura-Mat','Pintura-Obs','Soldadura-Mat','Soldadura-Obs','Piezas-Imagen','Obs-Imagen'],
   llantas:   ['Folio','Fecha','Hora','Unidad','Operador','Planta','Area Servicio','Mecanico','Llanta-Marca','Llanta-Obs','LlantaRep-Vida','LlantaRep-Obs','Obs-Llantas'],
