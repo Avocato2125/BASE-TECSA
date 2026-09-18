@@ -518,39 +518,6 @@
 
           <hr class="divider">
 
-          <!-- Afinación -->
-          <div class="field">
-            <label>Afinacion</label>
-            <div class="sino-row">
-              <button class="sino-btn" onclick="sino(this,'afinacion','si')">Si</button>
-              <button class="sino-btn" onclick="sino(this,'afinacion','no')">No</button>
-            </div>
-            <div class="sub-cond" id="cond-afinacion">
-              <div class="sub-label">Detalles — Afinacion</div>
-              <div class="field"><label>Km del Odometro</label><input type="number" id="afin-km" placeholder="Km actuales"></div>
-              <div class="field"><label>Piezas cambiadas</label><input type="text" id="afin-piezas" placeholder="Ej. bujias, cables, distribuidor..."></div>
-              <div class="field"><label>Materiales usados</label><input type="text" id="afin-materiales" placeholder="Especifica materiales y cantidades"></div>
-              <div class="field"><label>Evidencia fotografica</label><div class="foto-par">
-              <div class="foto-slot" id="slot-foto-afinacion-antes">
-                <input type="file" id="foto-afinacion-antes" accept="image/*" multiple onchange="onFotoChange(this,'foto-afinacion-antes')">
-                <div class="foto-slot-icon"></div>
-                <div class="foto-slot-lbl">Piezas Viejas</div>
-                <div class="foto-slot-count" id="cnt-foto-afinacion-antes">0 fotos</div>
-              </div>
-              <div class="foto-slot" id="slot-foto-afinacion-despues">
-                <input type="file" id="foto-afinacion-despues" accept="image/*" multiple onchange="onFotoChange(this,'foto-afinacion-despues')">
-                <div class="foto-slot-icon"></div>
-                <div class="foto-slot-lbl">Piezas Nuevas</div>
-                <div class="foto-slot-count" id="cnt-foto-afinacion-despues">0 fotos</div>
-              </div>
-            </div>
-            <div class="foto-preview-row" id="prev-foto-afinacion"></div></div>
-              <div class="field"><label>Observaciones</label><textarea id="afin-obs" placeholder="Observaciones..."></textarea></div>
-            </div>
-          </div>
-
-          <hr class="divider">
-
           <!-- Ajuste -->
           <div class="field">
             <label>Ajuste</label>
@@ -1581,7 +1548,6 @@ async function enviarReporte() {
         { sino: 'aceite',    label: 'Aceite',    camposReq: ['aceite-km','aceite-cap','aceite-lit-ant','aceite-lit-nuevo'], sinosReq: ['nivel-bajo'], fotoBase: 'foto-aceite' },
         { sino: 'frenos',    label: 'Frenos',    camposReq: [], fotoBase: 'foto-frenos' },
         { sino: 'servicio',  label: 'Servicio',  camposReq: [], sinosReq: ['engrasado','srv-aceite','filtros'] },
-        { sino: 'afinacion', label: 'Afinacion', camposReq: ['afinacion-km'], fotoBase: 'foto-afinacion' },
         { sino: 'ajuste',    label: 'Ajuste',    camposReq: ['ajuste-pieza'], fotoSingle: 'foto-ajuste' },
         { sino: 'piezas-tal',label: 'Piezas',    camposReq: [], piezasArea: 'tal' },
       ]
@@ -1822,13 +1788,9 @@ async function enviarReporte() {
           } : null,
           filtros: await recolectarFiltros()
         } : null,
-        afinacion: estadoSino['afinacion'] === 'si' ? {
-          km:        val('afin-km'),
-          piezas:    val('afin-piezas'),
-          materiales:val('afin-materiales'),
-          fotos:     await procesarFotosPar('foto-afinacion'),
-          obs:       val('afin-obs')
-        } : null,
+        // Afinacion se retiro del formulario. Se sigue enviando en null
+        // para que las columnas AF-AI de la hoja no se recorran.
+        afinacion: null,
         ajuste: estadoSino['ajuste'] === 'si' ? {
           pieza: val('ajuste-pieza'),
           fotos: await procesarInputFotos('foto-ajuste'),
