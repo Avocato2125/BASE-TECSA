@@ -102,7 +102,33 @@
   }
   .contador { font-size:12px; color:var(--muted); margin-bottom:10px; }
 
+  /* Reporte diario */
+  .panel-diario { display:none; }
+  .diario-barra { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
+  .diario-barra input {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:9px 13px; color:var(--text); font-size:13px; font-family:'Inter',sans-serif; outline:none;
+    color-scheme:dark;
+  }
+  .btn-acc {
+    background:rgba(75,142,232,0.1); border:1px solid rgba(75,142,232,0.3); color:var(--accent2);
+    border-radius:8px; padding:9px 16px; font-size:13px; font-weight:500; cursor:pointer;
+    font-family:'Inter',sans-serif; transition:all 0.18s;
+  }
+  .btn-acc:hover { border-color:var(--accent2); background:rgba(75,142,232,0.2); }
+  .btn-acc:disabled { opacity:0.5; cursor:wait; }
+  .resumen-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:22px; }
+  .res-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+  .res-lbl { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:6px; }
+  .res-val { font-family:'Rajdhani',sans-serif; font-size:26px; font-weight:700; color:var(--accent); line-height:1; }
+  .sec-diario { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; letter-spacing:1px;
+    color:var(--text); margin:22px 0 10px; padding-left:10px; border-left:3px solid var(--accent); }
+  .tabla-wrap.scroll { overflow-x:auto; }
+  .tabla-wrap.scroll table { min-width:900px; }
+  .msg-diario { font-size:12px; margin-left:4px; }
+
   @media(max-width:760px) {
+    .resumen-grid { grid-template-columns:repeat(2,1fr); }
     .main { padding:16px 14px 40px; }
     .topbar { padding:12px 16px; }
     thead th:nth-child(4), tbody td:nth-child(4) { display:none; }
@@ -125,6 +151,7 @@
     <button class="tab-btn active" id="tab-taller"     onclick="cambiarTipo('taller')">Taller</button>
     <button class="tab-btn"        id="tab-auditoria"  onclick="cambiarTipo('auditoria')">Auditorias</button>
     <button class="tab-btn"        id="tab-proveedor"  onclick="cambiarTipo('proveedor')">Proveedores</button>
+    <button class="tab-btn"        id="tab-diario"     onclick="cambiarTipo('diario')">Reporte diario</button>
   </div>
 
   <div class="filtros">
@@ -132,6 +159,17 @@
     <input type="date" id="filtroDesde" onchange="render()" title="Desde">
     <input type="date" id="filtroHasta" onchange="render()" title="Hasta">
     <button class="btn-volver" onclick="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <div class="panel-diario" id="panelDiario">
+    <div class="diario-barra">
+      <input type="date" id="fechaDiario" onchange="cargarDiario()">
+      <button class="btn-acc" onclick="cargarDiario()">Actualizar</button>
+      <button class="btn-pdf" id="btnPdfDiario" onclick="descargarPdfDiario()">Descargar PDF</button>
+      <button class="btn-acc" id="btnSheetsDiario" onclick="guardarSheetsDiario()">Guardar pestaña en Sheets</button>
+      <span class="msg-diario" id="msgDiario"></span>
+    </div>
+    <div id="contDiario"></div>
   </div>
 
   <div class="contador" id="contador"></div>
@@ -149,10 +187,138 @@ var DATOS = [];
 
 function cambiarTipo(t) {
   TIPO = t;
-  ['taller','auditoria','proveedor'].forEach(function(x){
+  ['taller','auditoria','proveedor','diario'].forEach(function(x){
     document.getElementById('tab-' + x).classList.toggle('active', x === t);
   });
-  cargar();
+  var diario = t === 'diario';
+  document.getElementById('panelDiario').style.display = diario ? 'block' : 'none';
+  document.querySelector('.filtros').style.display     = diario ? 'none' : '';
+  document.getElementById('contador').style.display    = diario ? 'none' : '';
+  document.querySelector('.tabla-wrap').style.display  = diario ? 'none' : '';
+  if (diario) {
+    var f = document.getElementById('fechaDiario');
+    if (!f.value) f.value = hoyISO();
+    cargarDiario();
+  } else {
+    cargar();
+  }
+}
+
+// ── Reporte diario ────────────────────────────────────────────
+function hoyISO() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function esc(t) {
+  return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function msgDiario(txt, color) {
+  var el = document.getElementById('msgDiario');
+  el.textContent = txt || '';
+  el.style.color = color || 'var(--muted)';
+}
+function tablaHTML(cols, filas, vacioTxt, ancha) {
+  if (!filas.length) return '<div class="tabla-wrap"><div class="vacio" style="padding:22px">' + vacioTxt + '</div></div>';
+  var h = '<div class="tabla-wrap' + (ancha ? ' scroll' : '') + '"><table><thead><tr>';
+  cols.forEach(function(c){ h += '<th>' + c[0] + '</th>'; });
+  h += '</tr></thead><tbody>';
+  filas.forEach(function(f){
+    h += '<tr>';
+    cols.forEach(function(c){
+      var v = esc(f[c[1]]);
+      if (c[1] === 'folio') v = '<span class="folio">' + v + '</span>';
+      if (c[1] === 'unidad') v = '<span class="unidad-td">' + v + '</span>';
+      h += '<td' + (c[2] ? ' style="' + c[2] + '"' : '') + '>' + (v || '—') + '</td>';
+    });
+    h += '</tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+async function cargarDiario() {
+  var cont  = document.getElementById('contDiario');
+  var fecha = document.getElementById('fechaDiario').value;
+  cont.innerHTML = '<div class="cargando">Armando el reporte del dia...</div>';
+  msgDiario('');
+  try {
+    var res  = await fetch(API + '/api/reporte-diario?fecha=' + fecha);
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    var r = data.reporte, s = r.resumen;
+    var chico = 'font-size:12px;color:var(--muted);max-width:260px';
+
+    var h = '<div class="resumen-grid">'
+      + '<div class="res-card"><div class="res-lbl">Entraron a taller</div><div class="res-val">' + s.entraron + '</div></div>'
+      + '<div class="res-card"><div class="res-lbl">Finalizados</div><div class="res-val">' + s.finalizados + '</div></div>'
+      + '<div class="res-card"><div class="res-lbl">Activos al cierre</div><div class="res-val">' + s.activos + '</div></div>'
+      + '<div class="res-card"><div class="res-lbl">Tiempo promedio de reparacion</div><div class="res-val" style="font-size:20px">' + (s.promedio || '—') + '</div></div>'
+      + '</div>';
+
+    h += '<div class="sec-diario">Reportes finalizados</div>' + tablaHTML([
+      ['Folio','folio'], ['Unidad','unidad'], ['Operador','operador'], ['Planta','planta'],
+      ['Area servicio','areaServicio'], ['Entrada','fechaEntrada'], ['Salida','fechaSalida'],
+      ['Tiempo','tiempo'], ['Mecanico','mecanico'], ['Reporte de falla','reporteFalla',chico],
+      ['Servicios realizados','servicios',chico],
+    ], r.finalizados, 'Sin reportes finalizados este dia.', true);
+
+    h += '<div class="sec-diario">Siguen activos al cierre</div>' + tablaHTML([
+      ['Folio','folio'], ['Unidad','unidad'], ['Operador','operador'], ['Planta','planta'],
+      ['Area servicio','areaServicio'], ['Fecha entrada','fechaEntrada'], ['Hora','horaEntrada'],
+      ['Tiempo en taller','tiempo'], ['Reporte de falla','reporteFalla',chico],
+    ], r.activos, 'Sin unidades activas al cierre.', true);
+
+    h += '<div class="sec-diario">Impacto por planta</div>' + tablaHTML([
+      ['Planta','planta'], ['Activas al cierre','activas'], ['Finalizadas en el dia','finalizadas'],
+    ], r.plantas, 'Sin movimientos.');
+
+    h += '<div class="sec-diario">Consumo del dia — liquidos</div>' + tablaHTML([
+      ['Concepto','concepto'], ['Litros','litros'], ['Unidades','unidades'],
+    ], r.liquidos, 'Sin consumo de liquidos registrado.');
+
+    h += '<div class="sec-diario">Consumo del dia — piezas</div>' + tablaHTML([
+      ['Folio','folio'], ['Unidad','unidad'], ['Area','area'], ['Pieza','pieza'], ['Material / detalle','material',chico],
+    ], r.piezas, 'Sin piezas cambiadas registradas.');
+
+    cont.innerHTML = h;
+  } catch(e) {
+    cont.innerHTML = '<div class="vacio">No se pudo armar el reporte: ' + esc(e.message) + '</div>';
+  }
+}
+
+// Se descarga como blob para poder mostrar el error si el servidor falla
+async function descargarPdfDiario() {
+  var btn = document.getElementById('btnPdfDiario');
+  var fecha = document.getElementById('fechaDiario').value;
+  btn.disabled = true; btn.textContent = 'Generando...';
+  try {
+    var res = await fetch(API + '/api/reporte-diario-pdf?fecha=' + fecha);
+    if (!res.ok) throw new Error(await res.text());
+    var blob = await res.blob();
+    var url  = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Reporte_Diario_' + fecha.split('-').reverse().join('-') + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  } catch(e) {
+    alert('No se pudo generar el PDF: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Descargar PDF';
+}
+
+async function guardarSheetsDiario() {
+  var btn = document.getElementById('btnSheetsDiario');
+  var fecha = document.getElementById('fechaDiario').value;
+  btn.disabled = true; msgDiario('Escribiendo pestaña...');
+  try {
+    var res  = await fetch(API + '/api/reporte-diario/sheets?fecha=' + fecha, { method: 'POST' });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    msgDiario('Pestaña "' + data.hoja + '" guardada', 'var(--green)');
+  } catch(e) {
+    msgDiario('Error: ' + e.message, 'var(--red)');
+  }
+  btn.disabled = false;
 }
 
 function limpiarFiltros() {

@@ -1562,6 +1562,12 @@ app.get('/api/reporte-pdf', async (req, res) => {
   }
 });
 
+// ── Reporte diario de taller (pestaña en Sheets + PDF + automatico) ──
+require('./reporteDiario')(app, {
+  getClients, PDFDocument, SHEET_ID, HOJAS_TALLER, HEADERS_TALLER,
+  HOJA_EVIDENCIAS, LOGO_BASE64,
+});
+
 // ── Catch-all ──────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
