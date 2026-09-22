@@ -473,14 +473,27 @@ module.exports = function registrarReporteDiario(app, deps) {
     ], rep.piezas, 'Sin piezas cambiadas registradas');
 
     // ── Crear la pestaña (reemplaza la anterior del mismo periodo) ──
+    // Orden importante: primero se crea la nueva con un nombre temporal,
+    // luego se borra la vieja y al final se renombra. Si se borrara primero
+    // y era la unica pestaña del archivo, Google rechaza la operacion.
+    // Todo va en un solo batchUpdate, asi que es atomico.
     const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID_DIARIO, fields: 'sheets.properties(sheetId,title)' });
-    const previa = (meta.data.sheets || []).find(s => s.properties.title === titulo);
-    const reqs = [];
-    if (previa) reqs.push({ deleteSheet: { sheetId: previa.properties.sheetId } });
-    reqs.push({ addSheet: { properties: { title: titulo, index: 0,
-      gridProperties: { rowCount: filas.length + 5, columnCount: N, hideGridlines: true } } } });
-    const resp = await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID_DIARIO, requestBody: { requests: reqs } });
-    const sheetId = resp.data.replies[resp.data.replies.length - 1].addSheet.properties.sheetId;
+    const existentes = meta.data.sheets || [];
+    const previa = existentes.find(s => s.properties.title === titulo);
+    const idsUsados = new Set(existentes.map(s => s.properties.sheetId));
+    let sheetId;
+    do { sheetId = Math.floor(Math.random() * 2000000000); } while (idsUsados.has(sheetId));
+
+    const reqs = [{ addSheet: { properties: {
+      sheetId, index: 0,
+      title: previa ? `${titulo.slice(0, 90)} (tmp)` : titulo,
+      gridProperties: { rowCount: filas.length + 5, columnCount: N, hideGridlines: true },
+    } } }];
+    if (previa) {
+      reqs.push({ deleteSheet: { sheetId: previa.properties.sheetId } });
+      reqs.push({ updateSheetProperties: { properties: { sheetId, title: titulo }, fields: 'title' } });
+    }
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID_DIARIO, requestBody: { requests: reqs } });
 
     await sheets.spreadsheets.values.update({
       spreadsheetId: SHEET_ID_DIARIO, range: `'${titulo}'!A1`,

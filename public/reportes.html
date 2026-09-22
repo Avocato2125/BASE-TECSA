@@ -132,6 +132,12 @@
     background:var(--surface); border:1px solid var(--border); border-radius:8px;
     padding:9px 13px; color:var(--text); font-size:13px; font-family:'Inter',sans-serif; outline:none;
   }
+  .modo-sel { display:flex; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:3px; }
+  .modo-btn {
+    background:transparent; border:none; border-radius:6px; padding:7px 14px; color:var(--muted);
+    font-size:12px; font-weight:500; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.15s;
+  }
+  .modo-btn.activo { background:var(--surface2); color:var(--accent); box-shadow:inset 0 0 0 1px var(--border2); }
   .btn-atajo {
     background:transparent; border:1px solid var(--border2); border-radius:20px; padding:6px 14px;
     color:var(--muted); font-size:12px; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.18s;
@@ -186,8 +192,12 @@
 
   <div class="panel-diario" id="panelDiario">
     <div class="diario-barra">
-      <label class="lbl-mini">Desde <input type="date" id="fechaDesde" onchange="cargarDiario()"></label>
-      <label class="lbl-mini">Hasta <input type="date" id="fechaHasta" onchange="cargarDiario()"></label>
+      <div class="modo-sel">
+        <button class="modo-btn activo" id="modoDia" onclick="setModo('dia')">Un dia</button>
+        <button class="modo-btn" id="modoRango" onclick="setModo('rango')">Periodo</button>
+      </div>
+      <label class="lbl-mini"><span id="lblDesde">Fecha</span> <input type="date" id="fechaDesde" onchange="cargarDiario()"></label>
+      <label class="lbl-mini" id="bloqueHasta" style="display:none">Hasta <input type="date" id="fechaHasta" onchange="cargarDiario()"></label>
       <label class="lbl-mini">Planta
         <select id="plantaDiario" onchange="cargarDiario()"><option value="">Todas</option></select>
       </label>
@@ -255,9 +265,22 @@ function msgDiario(txt, color) {
   el.textContent = txt || '';
   el.style.color = color || 'var(--muted)';
 }
+var MODO = 'dia';
+function setModo(m, sinCargar) {
+  MODO = m;
+  document.getElementById('modoDia').classList.toggle('activo', m === 'dia');
+  document.getElementById('modoRango').classList.toggle('activo', m === 'rango');
+  document.getElementById('bloqueHasta').style.display = m === 'rango' ? '' : 'none';
+  document.getElementById('lblDesde').textContent = m === 'rango' ? 'Desde' : 'Fecha';
+  // Al pasar a periodo, si Hasta esta vacio o antes de Desde, se iguala
+  var d = document.getElementById('fechaDesde'), hh = document.getElementById('fechaHasta');
+  if (m === 'rango' && (!hh.value || hh.value < d.value)) hh.value = d.value;
+  if (!sinCargar) cargarDiario();
+}
+
 function params() {
   var d = document.getElementById('fechaDesde').value;
-  var h = document.getElementById('fechaHasta').value || d;
+  var h = MODO === 'rango' ? (document.getElementById('fechaHasta').value || d) : d;
   var p = document.getElementById('plantaDiario').value;
   return 'desde=' + d + '&hasta=' + h + (p ? '&planta=' + encodeURIComponent(p) : '');
 }
@@ -271,7 +294,7 @@ function atajo(tipo) {
   if (tipo === 'mesAnt') { d = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); h = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
   document.getElementById('fechaDesde').value = iso(d);
   document.getElementById('fechaHasta').value = iso(h);
-  cargarDiario();
+  setModo((tipo === 'hoy' || tipo === 'ayer') ? 'dia' : 'rango');
 }
 
 function tablaHTML(cols, filas, vacioTxt, ancha) {
