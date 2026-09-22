@@ -807,7 +807,7 @@ async function confirmarSalida() {
     try {
       var resP  = await fetch(API_URL + '/api/salida-proveedor', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ rowIndex:u.rowIndex, password:password, trabajoRealizado:trabajo, fotos:fotosProv.salida })
+        body: JSON.stringify({ folio:u.folio, rowIndex:u.rowIndex, password:password, trabajoRealizado:trabajo, fotos:fotosProv.salida })
       });
       var dataP = await resP.json();
       if (dataP.ok) {
@@ -831,7 +831,7 @@ async function confirmarSalida() {
   try {
     var res  = await fetch(API_URL + '/api/baja', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ rowIndex:u.rowIndex, rowIndexTaller:u.rowIndexTaller, password:password })
+      body: JSON.stringify({ folio:u.folio, rowIndex:u.rowIndex, rowIndexTaller:u.rowIndexTaller, password:password })
     });
     var data = await res.json();
     if (data.ok) {

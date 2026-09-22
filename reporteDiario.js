@@ -248,7 +248,11 @@ module.exports = function registrarReporteDiario(app, deps) {
           if (esSi(celda(fila, hoja, 'Amortiguadores'))) { serv.push('Amortiguadores'); pz('Suspension', 'Amortiguadores', ''); }
           if (celda(fila, hoja, 'Piezas-Suspension')) { serv.push('Cambio de piezas (suspension)'); agregarPiezas('Piezas-Suspension', 'Suspension'); }
         }
-        r.servicios.push(...(serv.length ? serv : [`${nombresHoja[hoja]} (ver observaciones)`]));
+        // Las filas con solo "No" (valores por defecto, que el servidor escribia
+        // antes aunque el area no se trabajara) no aportan ningun servicio.
+        const conTexto = fila.slice(8).some(c => c != null && String(c).trim() !== '' && String(c).trim() !== 'No');
+        if (serv.length) r.servicios.push(...serv);
+        else if (conTexto) r.servicios.push(`${nombresHoja[hoja]} (ver observaciones)`);
       });
     });
 

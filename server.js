@@ -75,7 +75,9 @@ async function getClients() {
 function ahoraMty() {
   const ahora = new Date();
   const fecha = ahora.toLocaleDateString('es-MX',  { day:'2-digit', month:'2-digit', year:'numeric',  timeZone:'America/Monterrey' });
-  const hora  = ahora.toLocaleTimeString('es-MX',  { hour:'2-digit', minute:'2-digit', hour12:false,  timeZone:'America/Monterrey' });
+  // hourCycle h23 en vez de hour12:false: con hour12 algunas versiones de
+  // Node escriben la medianoche como "24:30" en lugar de "00:30".
+  const hora  = ahora.toLocaleTimeString('es-MX',  { hour:'2-digit', minute:'2-digit', hourCycle:'h23',  timeZone:'America/Monterrey' });
   return { fecha, hora };
 }
 
@@ -138,10 +140,56 @@ async function generarFolio(sheets, esTaller) {
   return fallback;
 }
 
+// ── Confirmacion de folio unico ────────────────────────────────
+// Calcular "el maximo + 1" no basta: si dos personas registran en el mismo
+// segundo, las dos leen la misma lista y sacan el mismo numero. Por eso,
+// DESPUES de escribir se relee la columna: si el folio aparece mas de una
+// vez, se queda con el el registro que quedo mas arriba y el de abajo toma
+// el siguiente numero libre. Es determinista: nunca se quedan los dos.
+function filaDeAppend(resp) {
+  const m = String(resp?.data?.updates?.updatedRange || '').match(/![A-Z]+(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+async function confirmarFolio(sheets, { spreadsheetId, hoja, fila, folio, generar }) {
+  if (!fila) return folio;
+  const rango = hoja ? `'${hoja}'!A2:A` : 'A2:A';
+  const celda = n => hoja ? `'${hoja}'!A${n}` : `A${n}`;
+  for (let intento = 0; intento < 5; intento++) {
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: rango });
+    const col = (r.data.values || []).map(x => String((x && x[0]) || '').trim());
+    const filas = col.map((f, i) => f === folio ? i + 2 : 0).filter(Boolean);
+    if (filas.length <= 1 || filas[0] === fila) return folio;
+    console.warn(`[Folio] ${folio} duplicado (filas ${filas.join(', ')}); la fila ${fila} toma otro`);
+    await new Promise(res => setTimeout(res, 150 + Math.random() * 350));
+    folio = await generar();
+    await sheets.spreadsheets.values.update({
+      spreadsheetId, range: celda(fila), valueInputOption: 'RAW', requestBody: { values: [[folio]] },
+    });
+  }
+  return folio;
+}
+
+// Busca la fila de un folio. Si se da un renglon sugerido y ahi esta el
+// folio, lo usa; si no (alguien movio filas en el Sheet), lo busca.
+async function filaDeFolio(sheets, { spreadsheetId, hoja, folio, sugerida, colEstado, soloActivo = true }) {
+  const rango = hoja ? `'${hoja}'!A2:K` : 'A2:K';
+  const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: rango });
+  const filas = r.data.values || [];
+  const ok = i => filas[i] && String(filas[i][0] || '').trim() === String(folio).trim()
+               && (!soloActivo || filas[i][colEstado] === 'ACTIVO');
+  const iSug = sugerida ? sugerida - 2 : -1;
+  if (iSug >= 0 && ok(iSug)) return sugerida;
+  for (let i = 0; i < filas.length; i++) if (ok(i)) return i + 2;
+  return null;
+}
+
 // ── Drive: obtener o crear carpeta ──────────────────────────────
 async function getOCrearCarpeta(drive, padreId, nombre) {
   if (!padreId) throw new Error('getOCrearCarpeta: padreId es undefined para carpeta "' + nombre + '"');
-  const q = `'${padreId}' in parents and name='${nombre}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  // Escapar apostrofes y diagonales invertidas: un nombre como "O'Brien"
+  // rompia la consulta y la carpeta se duplicaba en cada envio.
+  const nombreQ = String(nombre).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const q = `'${padreId}' in parents and name='${nombreQ}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const res = await drive.files.list({
     q,
     fields: 'files(id)',
@@ -272,18 +320,32 @@ app.get('/api/unidades', async (req, res) => {
 });
 
 app.post('/api/baja', async (req, res) => {
-  const { rowIndex, rowIndexTaller, password } = req.body;
+  const { rowIndex, rowIndexTaller, password, folio } = req.body;
   if (password !== PASS_BAJA) return res.json({ ok: false, error: 'Contrasena incorrecta' });
   try {
     const { sheets } = await getClients();
     const { fecha, hora } = ahoraMty();
+
+    // El renglon viene de la lista que cargo el navegador. Si alguien movio
+    // filas en el Sheet desde entonces, ese renglon ya es OTRA unidad; por
+    // eso se confirma con el folio y, si no coincide, se busca.
+    let filaE = parseInt(rowIndex, 10) || null;
+    if (folio) {
+      filaE = await filaDeFolio(sheets, { spreadsheetId: SHEET_ID, hoja: 'Entradas', folio, sugerida: filaE, colEstado: 6 });
+      if (!filaE) return res.json({ ok: false, error: 'Ese folio ya no esta activo. Actualiza la lista.' });
+    } else if (!filaE) {
+      return res.json({ ok: false, error: 'Falta el folio de la unidad' });
+    }
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID, range: `Entradas!G${rowIndex}:I${rowIndex}`,
+      spreadsheetId: SHEET_ID, range: `Entradas!G${filaE}:I${filaE}`,
       valueInputOption: 'RAW', requestBody: { values: [['BAJA', fecha, hora]] }
     });
-    if (rowIndexTaller) {
+
+    let filaT = parseInt(rowIndexTaller, 10) || null;
+    if (folio) filaT = await filaDeFolio(sheets, { spreadsheetId: SHEET_ID, hoja: 'Taller', folio, sugerida: filaT, colEstado: 8 });
+    if (filaT) {
       await sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID, range: `Taller!I${rowIndexTaller}`,
+        spreadsheetId: SHEET_ID, range: `Taller!I${filaT}`,
         valueInputOption: 'RAW', requestBody: { values: [['BAJA']] }
       });
     }
@@ -299,26 +361,33 @@ app.post('/api/registrar-entrada', async (req, res) => {
     const datos = req.body;
     const { sheets } = await getClients();
     const { fecha, hora } = ahoraMty();
-    const unidad   = String(datos.unidad).toUpperCase().trim();
-    const operador = String(datos.operador).trim();
+    const unidad   = String(datos.unidad || '').toUpperCase().trim();
+    const operador = String(datos.operador || '').trim();
     const motivo   = datos.motivo;
     const esTaller = motivo === 'Taller';
+    if (!unidad || !operador || !motivo) {
+      return res.json({ ok: false, error: 'Faltan datos: unidad, operador y motivo son obligatorios' });
+    }
 
     let motivoTexto = motivo;
     if (motivo === 'Camaras')  motivoTexto = `Camaras/Display — ${datos.planta || ''} — ${datos.reporteFalla || ''}`;
     else if (motivo === 'Inplant') motivoTexto = `Inplant — ${datos.planta || ''} — ${datos.detalle || ''}`;
     else if (motivo === 'Otro' && datos.detalle) motivoTexto = `Otro: ${datos.detalle}`;
 
-    const folio = await generarFolio(sheets, esTaller);
+    let folio = await generarFolio(sheets, esTaller);
 
-    // Guardar en Entradas
-    await sheets.spreadsheets.values.append({
+    // Guardar en Entradas y confirmar que nadie tomo el mismo folio a la vez
+    const ap = await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID, range: 'Entradas!A:I',
       valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [[folio, fecha, hora, unidad, operador, motivoTexto, 'ACTIVO', '', '']] }
     });
+    folio = await confirmarFolio(sheets, {
+      spreadsheetId: SHEET_ID, hoja: 'Entradas', fila: filaDeAppend(ap), folio,
+      generar: () => generarFolio(sheets, esTaller),
+    });
 
-    // Si es Taller, también guardar en hoja Taller
+    // Si es Taller, también guardar en hoja Taller (ya con el folio definitivo)
     if (esTaller) {
       await sheets.spreadsheets.values.append({
         spreadsheetId: SHEET_ID, range: 'Taller!A:I',
@@ -456,6 +525,16 @@ app.post('/api/reporte-taller', async (req, res) => {
     const datos = req.body;
     const { sheets, drive } = await getClients();
     const { fecha, hora } = ahoraMty();
+
+    // Si el folio ya se cerro (doble toque en Enviar, o dos mecanicos con
+    // la misma unidad abierta), no se guarda un segundo reporte: duplicaria
+    // litros y refacciones en el reporte diario.
+    const folioT = datos.folioTaller || datos.folioEntrada;
+    if (!folioT) return res.json({ ok: false, error: 'Falta el folio de la unidad' });
+    const sigueActivo = await filaDeFolio(sheets, { spreadsheetId: SHEET_ID, hoja: 'Taller', folio: folioT, colEstado: 8 });
+    if (!sigueActivo) {
+      return res.json({ ok: false, error: `El folio ${folioT} ya fue cerrado; este reporte ya se habia enviado. Actualiza la pagina.` });
+    }
     const t  = datos.taller    || {};
     const el = datos.electrico || {};
     const im = datos.imagen    || {};
@@ -598,7 +677,11 @@ app.post('/api/reporte-taller', async (req, res) => {
       v(sp.muelles,'posicion'),
     ];
 
-    const tieneContenido = row => row.slice(8).some(c => c !== '' && c != null);
+    // "No" es el valor por defecto de Engrasado, filtros, Ajuste, Muelles y
+    // Amortiguadores. Si solo hay "No", la seccion no se trabajo y no se
+    // escribe fila (antes cada reporte dejaba filas vacias en Mecanico y
+    // Suspension aunque solo se hubiera trabajado otra area).
+    const tieneContenido = row => row.slice(8).some(c => c != null && String(c).trim() !== '' && String(c).trim() !== 'No');
 
     async function appendHoja(nombre, headers, row) {
       if (!tieneContenido(row)) return;
@@ -808,6 +891,13 @@ app.post('/api/auditoria', async (req, res) => {
     const { fecha, hora } = ahoraMty();
     const fechaCarp = fecha.replace(/\//g, '-');
 
+    // Evita una segunda auditoria del mismo folio (doble envio)
+    if (!datos.folio) return res.json({ ok: false, error: 'Falta el folio de la unidad' });
+    const activa = await filaDeFolio(sheets, { spreadsheetId: SHEET_ID, hoja: 'Entradas', folio: datos.folio, colEstado: 6 });
+    if (!activa) {
+      return res.json({ ok: false, error: `El folio ${datos.folio} ya fue auditado. Actualiza la pagina.` });
+    }
+
     // ── 1. Carpeta Unidad dentro de FOLDER_AUDITORIAS ────────
     const carpUnidad = await getOCrearCarpeta(drive, FOLDER_AUDITORIAS, `Unidad-${datos.unidad}`);
     const carpFecha  = await getOCrearCarpeta(drive, carpUnidad, fechaCarp);
@@ -860,13 +950,24 @@ app.post('/api/auditoria', async (req, res) => {
       return '';
     }));
 
-    // Agregar fila con fórmula HYPERLINK para PDF
-    const lastRow = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Auditorias!A:A' })).data.values?.length || 1;
-    await sheets.spreadsheets.values.append({
+    // Los datos se escriben en RAW (texto tal cual). Antes toda la fila iba
+    // en USER_ENTERED y Sheets reinterpretaba la fecha segun la region del
+    // archivo. Solo la celda del PDF necesita USER_ENTERED para la formula.
+    const apAud = await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID, range: 'Auditorias!A:A',
-      valueInputOption: 'USER_ENTERED', insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: [[...rowBase, ...rowPuntos, `=HYPERLINK("${pdfUrl}","PDF")`]] }
+      valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [[...rowBase, ...rowPuntos, 'PDF']] }
     });
+    const filaAud = filaDeAppend(apAud);
+    if (filaAud) {
+      const colPdf = rowBase.length + rowPuntos.length + 1;
+      let letra = '', n = colPdf;
+      while (n > 0) { const r = (n - 1) % 26; letra = String.fromCharCode(65 + r) + letra; n = Math.floor((n - 1) / 26); }
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID, range: `Auditorias!${letra}${filaAud}`,
+        valueInputOption: 'USER_ENTERED', requestBody: { values: [[`=HYPERLINK("${pdfUrl}","PDF")`]] }
+      });
+    }
 
     // ── 5. Dar de baja en Entradas ───────────────────────────
     const { fecha: fBaja, hora: hBaja } = ahoraMty();
@@ -966,7 +1067,7 @@ app.post('/api/registrar-proveedor', async (req, res) => {
     const { fecha, hora } = ahoraMty();
 
     await asegurarHeadersProv(sheets);
-    const folio = await generarFolioProv(sheets);
+    let folio = await generarFolioProv(sheets);
 
     // Foto de factura (si aplica)
     if (datos.factura === 'Si' && datos.facturaFotos?.length) {
@@ -974,7 +1075,7 @@ app.post('/api/registrar-proveedor', async (req, res) => {
       await registrarEvidencias(sheets, subs.map(s => [folio, 'Proveedor', 'Factura', s.fileId, s.nombre, fecha]));
     }
 
-    await sheets.spreadsheets.values.append({
+    const apProv = await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID_PROVEDORES, range: 'A:A',
       valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [[
@@ -985,6 +1086,10 @@ app.post('/api/registrar-proveedor', async (req, res) => {
         datos.factura === 'Si' ? 'Si' : 'No',
         'ACTIVO', '', '', ''
       ]] }
+    });
+    folio = await confirmarFolio(sheets, {
+      spreadsheetId: SHEET_ID_PROVEDORES, hoja: null, fila: filaDeAppend(apProv), folio,
+      generar: () => generarFolioProv(sheets),
     });
 
     res.json({ ok: true, folio });
@@ -1014,9 +1119,10 @@ app.get('/api/proveedores-activos', async (req, res) => {
 // ── Salida de proveedor: password + trabajo realizado + fotos ──
 app.post('/api/salida-proveedor', async (req, res) => {
   try {
-    const { rowIndex, password, trabajoRealizado, fotos } = req.body;
+    const { password, trabajoRealizado, fotos, folio } = req.body;
+    let rowIndex = parseInt(req.body.rowIndex, 10) || null;
     if (password !== PASS_BAJA) return res.json({ ok: false, error: 'Contrasena incorrecta' });
-    if (!rowIndex) return res.json({ ok: false, error: 'Falta rowIndex' });
+    if (!rowIndex && !folio) return res.json({ ok: false, error: 'Falta el folio del proveedor' });
     if (!trabajoRealizado || !String(trabajoRealizado).trim()) {
       return res.json({ ok: false, error: 'Describe el trabajo realizado' });
     }
@@ -1026,6 +1132,13 @@ app.post('/api/salida-proveedor', async (req, res) => {
 
     const { sheets, drive } = await getClients();
     const { fecha, hora } = ahoraMty();
+
+    // Confirmar que el renglon sigue siendo este proveedor (si alguien movio
+    // filas en el Sheet, se busca por folio en vez de cerrar a otro)
+    if (folio) {
+      rowIndex = await filaDeFolio(sheets, { spreadsheetId: SHEET_ID_PROVEDORES, hoja: null, folio, sugerida: rowIndex, colEstado: 7 });
+      if (!rowIndex) return res.json({ ok: false, error: 'Este proveedor ya fue dado de baja. Actualiza la lista.' });
+    }
 
     // Leer la fila para obtener el nombre del proveedor y verificar estado
     const r = await sheets.spreadsheets.values.get({
@@ -1220,6 +1333,24 @@ function paresDeFila(headers, fila) {
   return out;
 }
 
+// Solo las hojas de area que ya existen. Si alguna aun no se crea
+// (nadie ha enviado, por ejemplo, un reporte de Suspension), pedirla
+// hacia fallar la lectura COMPLETA y el listado salia vacio.
+async function hojasTallerExistentes(sheets) {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: 'sheets.properties.title' });
+  const titulos = new Set((meta.data.sheets || []).map(x => x.properties.title));
+  return Object.keys(HOJAS_TALLER).filter(k => titulos.has(HOJAS_TALLER[k]));
+}
+// Una fila con solo "No" (valores por defecto) no es trabajo realizado
+const filaConTrabajo = fila => fila.slice(8).some(c => c != null && String(c).trim() !== '' && String(c).trim() !== 'No');
+
+// Orden cronologico de folios MM/AA-[T|P]NNN (el orden de texto ponia
+// enero del año siguiente debajo de diciembre)
+function claveFolio(f) {
+  const m = String(f).match(/^(\d{2})\/(\d{2})-[A-Z]*?(\d+)/);
+  return m ? (+m[2]) * 1e7 + (+m[1]) * 1e5 + (+m[3]) : 0;
+}
+
 // ── Listado de reportes finalizados ────────────────────────────
 app.get('/api/reportes', async (req, res) => {
   try {
@@ -1227,16 +1358,16 @@ app.get('/api/reportes', async (req, res) => {
     const { sheets } = await getClients();
 
     if (tipo === 'taller') {
-      const claves = Object.keys(HOJAS_TALLER);
-      const rangos = claves.map(k => `${HOJAS_TALLER[k]}!A2:BZ`);
-      const r = await sheets.spreadsheets.values.batchGet({ spreadsheetId: SHEET_ID, ranges: rangos })
-        .catch(() => ({ data: { valueRanges: [] } }));
+      const claves = await hojasTallerExistentes(sheets);
+      if (!claves.length) return res.json({ ok:true, reportes: [] });
+      const rangos = claves.map(k => `'${HOJAS_TALLER[k]}'!A2:BZ`);
+      const r = await sheets.spreadsheets.values.batchGet({ spreadsheetId: SHEET_ID, ranges: rangos });
       const porFolio = {};
       (r.data.valueRanges || []).forEach((vr, idx) => {
         const clave = claves[idx];
         (vr.values || []).forEach(fila => {
           const folio = String(fila[0] || '').trim();
-          if (!folio) return;
+          if (!folio || !filaConTrabajo(fila)) return;
           if (!porFolio[folio]) porFolio[folio] = {
             folio, fecha: fila[1]||'', hora: fila[2]||'', unidad: fila[3]||'',
             operador: fila[4]||'', planta: fila[5]||'', areaServicio: fila[6]||'',
@@ -1245,7 +1376,7 @@ app.get('/api/reportes', async (req, res) => {
           porFolio[folio].areas.push(HOJAS_TALLER[clave]);
         });
       });
-      const lista = Object.values(porFolio).sort((a,b) => b.folio.localeCompare(a.folio));
+      const lista = Object.values(porFolio).sort((a,b) => claveFolio(b.folio) - claveFolio(a.folio));
       return res.json({ ok:true, reportes: lista });
     }
 
@@ -1433,9 +1564,10 @@ app.get('/api/reporte-pdf', async (req, res) => {
     let unidad = '', fechaRep = '';
 
     if (tipo === 'taller') {
-      const claves = Object.keys(HOJAS_TALLER);
+      const claves = await hojasTallerExistentes(sheets);
+      if (!claves.length) return res.status(404).send('Reporte no encontrado');
       const r = await sheets.spreadsheets.values.batchGet({
-        spreadsheetId: SHEET_ID, ranges: claves.map(k => `${HOJAS_TALLER[k]}!A1:BZ`),
+        spreadsheetId: SHEET_ID, ranges: claves.map(k => `'${HOJAS_TALLER[k]}'!A1:BZ`),
       });
       const secciones = [];
       let gen = null;

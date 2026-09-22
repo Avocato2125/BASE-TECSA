@@ -503,7 +503,7 @@ async function confirmarBaja() {
   try {
     var res = await fetch('/api/baja', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ rowIndex: bajaTarget.rowIndex, rowIndexTaller: bajaTarget.rowIndexTaller, password })
+      body: JSON.stringify({ folio: bajaTarget.folio, rowIndex: bajaTarget.rowIndex, rowIndexTaller: bajaTarget.rowIndexTaller, password })
     });
     var data = await res.json();
     if (data.ok) { cerrarModalBaja(); await cargarDatos(); }
