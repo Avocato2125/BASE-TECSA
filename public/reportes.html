@@ -126,9 +126,32 @@
   .tabla-wrap.scroll { overflow-x:auto; }
   .tabla-wrap.scroll table { min-width:900px; }
   .msg-diario { font-size:12px; margin-left:4px; }
+  .lbl-mini { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:1px; }
+  .lbl-mini select {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:9px 13px; color:var(--text); font-size:13px; font-family:'Inter',sans-serif; outline:none;
+  }
+  .btn-atajo {
+    background:transparent; border:1px solid var(--border2); border-radius:20px; padding:6px 14px;
+    color:var(--muted); font-size:12px; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.18s;
+  }
+  .btn-atajo:hover { border-color:var(--accent); color:var(--accent); }
+  .resumen-grid { grid-template-columns:repeat(5,1fr) !important; }
+  .fila-click { cursor:pointer; }
+  .fila-click td:first-child::before { content:'\25B8'; color:var(--accent); margin-right:8px; display:inline-block; transition:transform .15s; }
+  .fila-click.abierta td:first-child::before { transform:rotate(90deg); }
+  .fila-det td { background:rgba(75,142,232,0.04); padding:12px 18px; }
+  .det-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .det-tit { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:6px; }
+  .det-item { font-size:12px; padding:6px 0; border-bottom:1px solid var(--border); }
+  .det-item:last-child { border-bottom:none; }
+  .det-motivo { color:var(--muted); }
+  .sub-diario { font-size:11px; color:var(--muted); margin:-4px 0 8px 13px; }
 
   @media(max-width:760px) {
-    .resumen-grid { grid-template-columns:repeat(2,1fr); }
+    .resumen-grid { grid-template-columns:repeat(2,1fr) !important; }
+    .det-grid { grid-template-columns:1fr; }
     .main { padding:16px 14px 40px; }
     .topbar { padding:12px 16px; }
     thead th:nth-child(4), tbody td:nth-child(4) { display:none; }
@@ -163,12 +186,23 @@
 
   <div class="panel-diario" id="panelDiario">
     <div class="diario-barra">
-      <input type="date" id="fechaDiario" onchange="cargarDiario()">
-      <button class="btn-acc" onclick="cargarDiario()">Actualizar</button>
+      <label class="lbl-mini">Desde <input type="date" id="fechaDesde" onchange="cargarDiario()"></label>
+      <label class="lbl-mini">Hasta <input type="date" id="fechaHasta" onchange="cargarDiario()"></label>
+      <label class="lbl-mini">Planta
+        <select id="plantaDiario" onchange="cargarDiario()"><option value="">Todas</option></select>
+      </label>
+    </div>
+    <div class="diario-barra">
+      <button class="btn-atajo" onclick="atajo('hoy')">Hoy</button>
+      <button class="btn-atajo" onclick="atajo('ayer')">Ayer</button>
+      <button class="btn-atajo" onclick="atajo('semana')">Esta semana</button>
+      <button class="btn-atajo" onclick="atajo('mes')">Este mes</button>
+      <button class="btn-atajo" onclick="atajo('mesAnt')">Mes anterior</button>
+      <span style="flex:1"></span>
       <button class="btn-pdf" id="btnPdfDiario" onclick="descargarPdfDiario()">Descargar PDF</button>
       <button class="btn-acc" id="btnSheetsDiario" onclick="guardarSheetsDiario()">Guardar pestaña en Sheets</button>
-      <span class="msg-diario" id="msgDiario"></span>
     </div>
+    <div class="msg-diario" id="msgDiario" style="margin:-8px 0 12px"></div>
     <div id="contDiario"></div>
   </div>
 
@@ -196,19 +230,23 @@ function cambiarTipo(t) {
   document.getElementById('contador').style.display    = diario ? 'none' : '';
   document.querySelector('.tabla-wrap').style.display  = diario ? 'none' : '';
   if (diario) {
-    var f = document.getElementById('fechaDiario');
-    if (!f.value) f.value = hoyISO();
+    if (!document.getElementById('fechaDesde').value) {
+      document.getElementById('fechaDesde').value = hoyISO();
+      document.getElementById('fechaHasta').value = hoyISO();
+    }
     cargarDiario();
   } else {
     cargar();
   }
 }
 
-// ── Reporte diario ────────────────────────────────────────────
-function hoyISO() {
-  var d = new Date();
+// ── Reporte de taller por periodo ─────────────────────────────
+var REP = null;
+
+function iso(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+function hoyISO() { return iso(new Date()); }
 function esc(t) {
   return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -217,16 +255,35 @@ function msgDiario(txt, color) {
   el.textContent = txt || '';
   el.style.color = color || 'var(--muted)';
 }
+function params() {
+  var d = document.getElementById('fechaDesde').value;
+  var h = document.getElementById('fechaHasta').value || d;
+  var p = document.getElementById('plantaDiario').value;
+  return 'desde=' + d + '&hasta=' + h + (p ? '&planta=' + encodeURIComponent(p) : '');
+}
+
+// Atajos de periodo (la semana empieza en lunes)
+function atajo(tipo) {
+  var hoy = new Date(), d = new Date(hoy), h = new Date(hoy);
+  if (tipo === 'ayer')   { d.setDate(hoy.getDate() - 1); h = new Date(d); }
+  if (tipo === 'semana') { var dif = (hoy.getDay() + 6) % 7; d.setDate(hoy.getDate() - dif); }
+  if (tipo === 'mes')    { d = new Date(hoy.getFullYear(), hoy.getMonth(), 1); }
+  if (tipo === 'mesAnt') { d = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1); h = new Date(hoy.getFullYear(), hoy.getMonth(), 0); }
+  document.getElementById('fechaDesde').value = iso(d);
+  document.getElementById('fechaHasta').value = iso(h);
+  cargarDiario();
+}
+
 function tablaHTML(cols, filas, vacioTxt, ancha) {
-  if (!filas.length) return '<div class="tabla-wrap"><div class="vacio" style="padding:22px">' + vacioTxt + '</div></div>';
+  if (!filas.length) return '<div class="tabla-wrap"><div class="vacio" style="padding:20px">' + vacioTxt + '</div></div>';
   var h = '<div class="tabla-wrap' + (ancha ? ' scroll' : '') + '"><table><thead><tr>';
   cols.forEach(function(c){ h += '<th>' + c[0] + '</th>'; });
   h += '</tr></thead><tbody>';
   filas.forEach(function(f){
     h += '<tr>';
     cols.forEach(function(c){
-      var v = esc(f[c[1]]);
-      if (c[1] === 'folio') v = '<span class="folio">' + v + '</span>';
+      var v = esc(typeof c[1] === 'function' ? c[1](f) : f[c[1]]);
+      if (c[1] === 'folio')  v = '<span class="folio">' + v + '</span>';
       if (c[1] === 'unidad') v = '<span class="unidad-td">' + v + '</span>';
       h += '<td' + (c[2] ? ' style="' + c[2] + '"' : '') + '>' + (v || '—') + '</td>';
     });
@@ -235,23 +292,64 @@ function tablaHTML(cols, filas, vacioTxt, ancha) {
   return h + '</tbody></table></div>';
 }
 
+// Tabla cuyas filas se despliegan al hacer clic para mostrar el detalle
+function tablaDesplegable(id, cols, filas, detalleFn, vacioTxt) {
+  if (!filas.length) return '<div class="tabla-wrap"><div class="vacio" style="padding:20px">' + vacioTxt + '</div></div>';
+  var h = '<div class="tabla-wrap"><table><thead><tr>';
+  cols.forEach(function(c){ h += '<th>' + c[0] + '</th>'; });
+  h += '</tr></thead><tbody>';
+  filas.forEach(function(f, i){
+    h += '<tr class="fila-click" onclick="toggleDet(this,\'' + id + i + '\')">';
+    cols.forEach(function(c){ h += '<td>' + esc(f[c[1]]) + '</td>'; });
+    h += '</tr><tr class="fila-det" id="' + id + i + '" style="display:none"><td colspan="' + cols.length + '">'
+       + detalleFn(f) + '</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+function toggleDet(tr, id) {
+  var det = document.getElementById(id);
+  var abrir = det.style.display === 'none';
+  det.style.display = abrir ? '' : 'none';
+  tr.classList.toggle('abierta', abrir);
+}
+
+function listaDet(titulo, items, lineaFn) {
+  var h = '<div><div class="det-tit">' + titulo + ' (' + items.length + ')</div>';
+  if (!items.length) return h + '<div class="det-item det-motivo">Ninguna</div></div>';
+  items.forEach(function(d){ h += '<div class="det-item">' + lineaFn(d) + '</div>'; });
+  return h + '</div>';
+}
+
+function llenarPlantas(catalogo) {
+  var sel = document.getElementById('plantaDiario');
+  var actual = sel.value;
+  var ya = Array.from(sel.options).map(function(o){ return o.value; });
+  (catalogo || []).forEach(function(p){
+    if (ya.indexOf(p) === -1) { var o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); }
+  });
+  sel.value = actual;
+}
+
 async function cargarDiario() {
-  var cont  = document.getElementById('contDiario');
-  var fecha = document.getElementById('fechaDiario').value;
-  cont.innerHTML = '<div class="cargando">Armando el reporte del dia...</div>';
+  var cont = document.getElementById('contDiario');
+  cont.innerHTML = '<div class="cargando">Armando el reporte...</div>';
   msgDiario('');
   try {
-    var res  = await fetch(API + '/api/reporte-diario?fecha=' + fecha);
+    var res  = await fetch(API + '/api/reporte-diario?' + params());
     var data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Error');
-    var r = data.reporte, s = r.resumen;
+    var r = REP = data.reporte, s = r.resumen;
+    llenarPlantas(r.catalogoPlantas);
+    var dia = r.esDia;
     var chico = 'font-size:12px;color:var(--muted);max-width:260px';
 
     var h = '<div class="resumen-grid">'
       + '<div class="res-card"><div class="res-lbl">Entraron a taller</div><div class="res-val">' + s.entraron + '</div></div>'
-      + '<div class="res-card"><div class="res-lbl">Finalizados</div><div class="res-val">' + s.finalizados + '</div></div>'
+      + '<div class="res-card"><div class="res-lbl">' + (dia ? 'Finalizados del dia' : 'Finalizados que entraron en el periodo') + '</div><div class="res-val">' + s.finPeriodo + '</div></div>'
+      + '<div class="res-card"><div class="res-lbl">' + (dia ? 'Finalizados de dias anteriores' : 'Finalizados que entraron antes') + '</div><div class="res-val">' + s.finAnteriores + '</div></div>'
       + '<div class="res-card"><div class="res-lbl">Activos al cierre</div><div class="res-val">' + s.activos + '</div></div>'
-      + '<div class="res-card"><div class="res-lbl">Tiempo promedio de reparacion</div><div class="res-val" style="font-size:20px">' + (s.promedio || '—') + '</div></div>'
+      + '<div class="res-card"><div class="res-lbl">Tiempo promedio de reparacion</div><div class="res-val" style="font-size:20px">' + (s.promedio || '—') + '</div>'
+      +   (s.promedioN ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">sobre ' + s.promedioN + ' reportes</div>' : '') + '</div>'
       + '</div>';
 
     h += '<div class="sec-diario">Reportes finalizados</div>' + tablaHTML([
@@ -259,23 +357,39 @@ async function cargarDiario() {
       ['Area servicio','areaServicio'], ['Entrada','fechaEntrada'], ['Salida','fechaSalida'],
       ['Tiempo','tiempo'], ['Mecanico','mecanico'], ['Reporte de falla','reporteFalla',chico],
       ['Servicios realizados','servicios',chico],
-    ], r.finalizados, 'Sin reportes finalizados este dia.', true);
+    ], r.finalizados, 'Sin reportes finalizados en el periodo.', true);
 
-    h += '<div class="sec-diario">Siguen activos al cierre</div>' + tablaHTML([
+    var colsAct = [
       ['Folio','folio'], ['Unidad','unidad'], ['Operador','operador'], ['Planta','planta'],
-      ['Area servicio','areaServicio'], ['Fecha entrada','fechaEntrada'], ['Hora','horaEntrada'],
+      ['Area servicio','areaServicio'], ['Entrada', function(a){ return a.fechaEntrada + ' ' + (a.horaEntrada || ''); }],
       ['Tiempo en taller','tiempo'], ['Reporte de falla','reporteFalla',chico],
-    ], r.activos, 'Sin unidades activas al cierre.', true);
+    ];
+    h += '<div class="sec-diario">Siguen activos al cierre — ' + (dia ? 'entraron este dia' : 'entraron en el periodo') + '</div>'
+       + tablaHTML(colsAct, r.activosPeriodo, 'Ninguna.', true);
+    h += '<div class="sec-diario">Siguen activos al cierre — ' + (dia ? 'de dias anteriores' : 'de antes del periodo') + '</div>'
+       + tablaHTML(colsAct, r.activosAnteriores, 'Ninguna.', true);
 
-    h += '<div class="sec-diario">Impacto por planta</div>' + tablaHTML([
-      ['Planta','planta'], ['Activas al cierre','activas'], ['Finalizadas en el dia','finalizadas'],
-    ], r.plantas, 'Sin movimientos.');
+    h += '<div class="sec-diario">Impacto por planta</div><div class="sub-diario">Toca una planta para ver sus folios.</div>'
+       + tablaDesplegable('pl', [['Planta','planta'], ['Activas al cierre','activas'], ['Finalizadas','finalizadas']],
+         r.plantas, function(p){
+           var linea = function(d){
+             return '<span class="folio">' + esc(d.folio) + '</span> &middot; Unidad <b>' + esc(d.unidad) + '</b> &middot; ' + esc(d.area)
+               + (d.tiempo ? ' &middot; ' + esc(d.tiempo) : '')
+               + (d.motivo ? '<br><span class="det-motivo">' + esc(d.motivo) + '</span>' : '');
+           };
+           return '<div class="det-grid">' + listaDet('Activas', p.detalleActivas, linea)
+                + listaDet('Finalizadas', p.detalleFinalizadas, linea) + '</div>';
+         }, 'Sin movimientos.');
 
-    h += '<div class="sec-diario">Consumo del dia — liquidos</div>' + tablaHTML([
-      ['Concepto','concepto'], ['Litros','litros'], ['Unidades','unidades'],
-    ], r.liquidos, 'Sin consumo de liquidos registrado.');
+    h += '<div class="sec-diario">Consumo de liquidos</div><div class="sub-diario">Toca un concepto para ver a que folios corresponde.</div>'
+       + tablaDesplegable('lq', [['Concepto','concepto'], ['Litros','litros'], ['Unidades','unidades']],
+         r.liquidos, function(l){
+           return listaDet('Detalle', l.detalle, function(d){
+             return '<span class="folio">' + esc(d.folio) + '</span> &middot; Unidad <b>' + esc(d.unidad) + '</b> &middot; ' + esc(d.litros) + ' L';
+           });
+         }, 'Sin consumo de liquidos registrado.');
 
-    h += '<div class="sec-diario">Consumo del dia — piezas</div>' + tablaHTML([
+    h += '<div class="sec-diario">Consumo de refacciones</div>' + tablaHTML([
       ['Folio','folio'], ['Unidad','unidad'], ['Area','area'], ['Pieza','pieza'], ['Material / detalle','material',chico],
     ], r.piezas, 'Sin piezas cambiadas registradas.');
 
@@ -285,19 +399,18 @@ async function cargarDiario() {
   }
 }
 
-// Se descarga como blob para poder mostrar el error si el servidor falla
 async function descargarPdfDiario() {
   var btn = document.getElementById('btnPdfDiario');
-  var fecha = document.getElementById('fechaDiario').value;
   btn.disabled = true; btn.textContent = 'Generando...';
   try {
-    var res = await fetch(API + '/api/reporte-diario-pdf?fecha=' + fecha);
+    var res = await fetch(API + '/api/reporte-diario-pdf?' + params());
     if (!res.ok) throw new Error(await res.text());
+    var cd = res.headers.get('Content-Disposition') || '';
+    var nombre = (cd.match(/filename="([^"]+)"/) || [])[1] || 'Reporte_Taller.pdf';
     var blob = await res.blob();
     var url  = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url;
-    a.download = 'Reporte_Diario_' + fecha.split('-').reverse().join('-') + '.pdf';
+    a.href = url; a.download = nombre;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   } catch(e) {
@@ -308,10 +421,9 @@ async function descargarPdfDiario() {
 
 async function guardarSheetsDiario() {
   var btn = document.getElementById('btnSheetsDiario');
-  var fecha = document.getElementById('fechaDiario').value;
   btn.disabled = true; msgDiario('Escribiendo pestaña...');
   try {
-    var res  = await fetch(API + '/api/reporte-diario/sheets?fecha=' + fecha, { method: 'POST' });
+    var res  = await fetch(API + '/api/reporte-diario/sheets?' + params(), { method: 'POST' });
     var data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Error');
     msgDiario('Pestaña "' + data.hoja + '" guardada', 'var(--green)');
